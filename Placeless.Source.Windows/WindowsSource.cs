@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,31 +21,58 @@ namespace Placeless.Source.Windows
         private readonly IPlacelessconfig _configuration;
         private HashSet<string> _existingSources;
 
+        private List<Enum> enums = new List<Enum>();
+
         public WindowsSource(IMetadataStore store, IPlacelessconfig configuration)
         {
             _metadataStore = store;
             _configuration = configuration;
+            foreach (Enum enumValue in Enum.GetValues(typeof(FileAttributes)))
+            {
+                enums.Add(enumValue);
+            }
         }
 
-        public WindowsSource()
-        {
-        }
 
-        public void RefreshMetadata(string path)
+        public void RefreshMetadata(string path, IEnumerable<string> extentions)
         {
             _existingSources = _metadataStore.ExistingSources(GetName(), path);
             foreach (var existingSource in _existingSources)
             {
-                string metadata = GetMetadata(existingSource);
-                _metadataStore.UpdateMetadataForSource(existingSource, metadata);
+                if (extentions.Contains(Path.GetExtension(existingSource).ToLower()))
+                {
+                    string metadata = GetMetadata(existingSource);
+                    _metadataStore.UpdateMetadataForSource(existingSource, metadata);
+                }
             }
         }
+
+        public Task RefreshMetadata()
+        {
+
+            var paths = _configuration.GetValues("FileSystem:Paths")
+                .Where(p => !(string.IsNullOrWhiteSpace(p)));
+
+            var fileTypes = _configuration.GetValues("FileSystem:Extensions")
+                .Where(f => !(string.IsNullOrWhiteSpace(f)));
+
+            foreach (var path in paths)
+            {
+                RefreshMetadata(path, fileTypes);
+            }
+            return Task.CompletedTask;
+        }
+
 
         public Task Discover()
         {
 
-            var paths = _configuration.GetValues("FileSystem:Paths");
-            var fileTypes = _configuration.GetValues("FileSystem:Extensions");
+            var paths = _configuration.GetValues("FileSystem:Paths")
+                .Where(p => !(string.IsNullOrWhiteSpace(p)));
+
+            var fileTypes = _configuration.GetValues("FileSystem:Extensions")
+                .Where(f => !(string.IsNullOrWhiteSpace(f)));
+
             foreach (var path in paths)
             {
                 _existingSources = _metadataStore.ExistingSources(GetName(), path);
@@ -56,6 +84,13 @@ namespace Placeless.Source.Windows
         private string GetMetadata(string path)
         {
             JObject j = new JObject();
+
+            string attributes = ExpandAttributes(System.IO.File.GetAttributes(path));
+
+            j.Add("Windows Created Utc", System.IO.File.GetCreationTimeUtc(path));
+            j.Add("Windows Modified Utc", System.IO.File.GetLastWriteTimeUtc(path));
+            j.Add("Windows Attributes", attributes);
+
             try
             {
                 var metadataDir = ImageMetadataReader.ReadMetadata(path);
@@ -81,10 +116,15 @@ namespace Placeless.Source.Windows
             }
             catch (Exception ex)
             {
-                return "{ \"Error\" : \"" + ex.Message + "\" }";
             }
 
             return j.ToString();
+        }
+
+        private string ExpandAttributes(FileAttributes fileAttributes)
+        {
+            var activeFlags = enums.Where(e => fileAttributes.HasFlag(e)).Select(e => Enum.GetName(typeof(FileAttributes), e));
+            return string.Join(',', activeFlags);
         }
 
         private string Clean(string name)

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Placeless
@@ -7,6 +8,7 @@ namespace Placeless
     {
         Task Discover();
         Task Retrieve();
+        Task RefreshMetadata();
         string GetName();
     }
 }

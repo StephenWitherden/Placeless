@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Placeless.Source.Flickr
 {
-    public class FlickrSource : ISource
+    public class FlickrSource : SourceBase
     {
         private readonly IMetadataStore _metadataStore;
         private readonly IPlacelessconfig _configuration;
@@ -30,6 +30,7 @@ namespace Placeless.Source.Flickr
         }
 
         public FlickrSource(IMetadataStore store, IPlacelessconfig configuration, IUserInteraction userInteraction)
+            : base(store)
         {
             _metadataStore = store;
             _configuration = configuration;
@@ -46,18 +47,12 @@ namespace Placeless.Source.Flickr
             _flickr.OAuthAccessToken = accessToken.Token;
         }
 
-        public FlickrSource()
+        public override IEnumerable<string> GetRoots()
         {
-        }
-
-        public void RefreshMetadata(string path)
-        {
-            _existingSources = _metadataStore.ExistingSources(GetName(), path);
-            foreach (var existingSource in _existingSources)
-            {
-                string metadata = GetMetadata(existingSource);
-                _metadataStore.UpdateMetadataForSource(existingSource, metadata);
-            }
+            var photoSets = _flickr.PhotosetsGetList().Select(s => s.PhotosetId + "/")
+                .ToList();
+            photoSets.Append("/"); // for photos that don't belong to a set
+            return photoSets;
         }
 
         public Task Discover()
@@ -141,7 +136,7 @@ namespace Placeless.Source.Flickr
             maxThread.Release();
         }
 
-        private string GetMetadata(string photoId)
+        public override string GetMetadata(string photoId)
         {
             var info = _flickr.PhotosGetInfo(photoId);
             var exif = _flickr.PhotosGetExif(photoId);
@@ -189,13 +184,7 @@ namespace Placeless.Source.Flickr
             return name.Replace(' ', '_').Replace('/', '_').Replace('-', '_');
         }
 
-
-        public Task Retrieve()
-        {
-            throw new NotImplementedException();
-        }
-
-        public string GetName()
+        public override string GetName()
         {
             return "Flickr";
         }
