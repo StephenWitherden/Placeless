@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Placeless.Console
 {
@@ -19,6 +20,8 @@ namespace Placeless.Console
     {
         static void Main(string[] args)
         {
+            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
+
             var interaction = new ConsoleUserInteraction();
             interaction.ReportStatus("Placeless console app starting.");
 
@@ -48,17 +51,29 @@ namespace Placeless.Console
             ////generator.Generate(new CreatedYearAttributeGenerator());
             ////generator.Generate(new MediumThumbnailGenerator());
 
-            source.Discover();
+            var collector = new Collector(store, source, interaction);
+
+            var discoveryTask = collector.Discover();
+
+            var rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+            var filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+
+            while (!discoveryTask.Wait(1000))
+            {
+                rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+                filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+
+                System.Console.WriteLine($"Roots: {collector.ProcessedRoots}/{collector.DiscoveredRoots} ({rootPercent}%); Files: {collector.ProcessedFiles}/{collector.DiscoveredFiles} ({filePercent}%)");
+            }
+            rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+            filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+            System.Console.WriteLine($"Roots: {collector.ProcessedRoots}/{collector.DiscoveredRoots} ({rootPercent}%); Files: {collector.ProcessedFiles}/{collector.DiscoveredFiles} ({filePercent}%)");
         }
 
-        public string InputPrompt(string prompt)
-        {
-            throw new NotImplementedException();
-        }
 
-        public void OpenWebPage(string url)
+        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
         {
-            throw new NotImplementedException();
+            System.Console.WriteLine(e.ExceptionObject.ToString());
         }
     }
 }

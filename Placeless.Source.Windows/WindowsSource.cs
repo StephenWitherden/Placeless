@@ -1,15 +1,19 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using MetadataExtractor;
 using Newtonsoft.Json.Linq;
 using Placeless;
 using Placeless.Source.Windows;
 using Directory = System.IO.Directory;
+
 
 
 namespace Placeless.Source.Windows
@@ -18,44 +22,59 @@ namespace Placeless.Source.Windows
     {
         private readonly IMetadataStore _metadataStore;
         private readonly IPlacelessconfig _configuration;
-        private HashSet<string> _existingSources;
+        private readonly IEnumerable<string> _fileTypes;
+
+        private List<Enum> enums = new List<Enum>();
 
         public WindowsSource(IMetadataStore store, IPlacelessconfig configuration)
         {
             _metadataStore = store;
             _configuration = configuration;
-        }
-
-        public WindowsSource()
-        {
-        }
-
-        public void RefreshMetadata(string path)
-        {
-            _existingSources = _metadataStore.ExistingSources(GetName(), path);
-            foreach (var existingSource in _existingSources)
+            foreach (Enum enumValue in Enum.GetValues(typeof(FileAttributes)))
             {
-                string metadata = GetMetadata(existingSource);
-                _metadataStore.UpdateMetadataForSource(existingSource, metadata);
+                enums.Add(enumValue);
+            }
+            _fileTypes = _configuration.GetValues("FileSystem:Extensions")
+                .Where(f => !(string.IsNullOrWhiteSpace(f)))
+                .ToList();
+        }
+
+
+        public IEnumerable<string> GetRoots()
+        {
+            ConcurrentQueue<string> inputs = new ConcurrentQueue<string>();
+            var items = _configuration.GetValues("FileSystem:Paths")
+                .Where(p => !(string.IsNullOrWhiteSpace(p)));
+
+            foreach (var item in items)
+            {
+                yield return item;
+                inputs.Enqueue(item);
+            }
+
+            string current = null;
+
+            while (inputs.TryDequeue(out current))
+            {
+                var childItems = Directory.EnumerateDirectories(current);
+                foreach (var item in childItems)
+                {
+                    yield return item;
+                    inputs.Enqueue(item);
+                }
             }
         }
 
-        public Task Discover()
-        {
-
-            var paths = _configuration.GetValues("FileSystem:Paths");
-            var fileTypes = _configuration.GetValues("FileSystem:Extensions");
-            foreach (var path in paths)
-            {
-                _existingSources = _metadataStore.ExistingSources(GetName(), path);
-                Discover(path, fileTypes);
-            }
-            return Task.CompletedTask;
-        }
-
-        private string GetMetadata(string path)
+        public async Task<string> GetMetadata(string path)
         {
             JObject j = new JObject();
+
+            string attributes = ExpandAttributes(System.IO.File.GetAttributes(path));
+
+            j.Add("Windows Created Utc", System.IO.File.GetCreationTimeUtc(path));
+            j.Add("Windows Modified Utc", System.IO.File.GetLastWriteTimeUtc(path));
+            j.Add("Windows Attributes", attributes);
+
             try
             {
                 var metadataDir = ImageMetadataReader.ReadMetadata(path);
@@ -81,10 +100,15 @@ namespace Placeless.Source.Windows
             }
             catch (Exception ex)
             {
-                return "{ \"Error\" : \"" + ex.Message + "\" }";
             }
 
-            return j.ToString();
+            return await Task.FromResult(j.ToString());
+        }
+
+        private string ExpandAttributes(FileAttributes fileAttributes)
+        {
+            var activeFlags = enums.Where(e => fileAttributes.HasFlag(e)).Select(e => Enum.GetName(typeof(FileAttributes), e));
+            return string.Join(',', activeFlags);
         }
 
         private string Clean(string name)
@@ -92,41 +116,32 @@ namespace Placeless.Source.Windows
             return name.Replace(' ', '_').Replace('/', '_').Replace('-', '_');
         }
 
-        private void Discover(string path, IEnumerable<string> extentions)
+        public IEnumerable<DiscoveredFile> Discover(string path, HashSet<string> existingSources)
         {
-            foreach (var filePath in Directory.EnumerateFiles(path))
-            {
-                if (extentions.Contains(Path.GetExtension(filePath).ToLower()) &&
-                    !_existingSources.Contains(filePath)
-                    )
+            var files = _fileTypes.AsParallel().SelectMany(pattern => 
+                Directory.EnumerateFiles(path, pattern, SearchOption.TopDirectoryOnly)
+            );
+            var unprocessedFiles = files.Where(f => !existingSources.Contains(f.ToLower()))
+                .Select(filePath => new DiscoveredFile
                 {
-                    var stream = System.IO.File.OpenRead(filePath);
-                    string metadata = GetMetadata(filePath);
-                    _metadataStore.AddDiscoveredFile(stream, Path.GetFileName(filePath), filePath, metadata, GetName());
-                }
-            }
+                    Name = Path.GetFileName(filePath),
+                    Path = filePath,
+                    Url = filePath
+                });
 
-            foreach (var subPath in Directory.EnumerateDirectories(path))
-            {
-                try
-                {
-                    Discover(subPath, extentions);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-            }
+            return unprocessedFiles;
         }
 
-        public Task Retrieve()
+        public Stream GetContents(string path)
         {
-            throw new NotImplementedException();
+            var stream = System.IO.File.OpenRead(path);
+            return stream;
         }
 
         public string GetName()
         {
             return "Windows";
         }
+
     }
 }

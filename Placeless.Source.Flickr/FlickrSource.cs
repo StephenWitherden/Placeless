@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,11 +16,8 @@ namespace Placeless.Source.Flickr
     {
         private readonly IMetadataStore _metadataStore;
         private readonly IPlacelessconfig _configuration;
-        private HashSet<string> _existingSources;
         private readonly FlickrNet.Flickr _flickr;
         private readonly IUserInteraction _userInteraction;
-        const int MAX_THREADS = 20;
-        SemaphoreSlim maxThread = new SemaphoreSlim(MAX_THREADS);
 
         private class DownloadState
         {
@@ -46,103 +44,88 @@ namespace Placeless.Source.Flickr
             _flickr.OAuthAccessToken = accessToken.Token;
         }
 
-        public FlickrSource()
+        public IEnumerable<string> GetRoots()
         {
-        }
-
-        public void RefreshMetadata(string path)
-        {
-            _existingSources = _metadataStore.ExistingSources(GetName(), path);
-            foreach (var existingSource in _existingSources)
+            yield return "/"; // for photos not in a set
+            foreach (var root in _flickr.PhotosetsGetList().Select(s => s.PhotosetId + "/"))
             {
-                string metadata = GetMetadata(existingSource);
-                _metadataStore.UpdateMetadataForSource(existingSource, metadata);
+                yield return root;
             }
         }
 
-        public Task Discover()
+        public Stream GetContents(string url)
         {
-            var done = false;
-            while (!done)
+            using (WebClient wc = new WebClient())
             {
+                var data = wc.DownloadData(url);
+                var stream = new MemoryStream(data);
+                return stream;
+            }
+        }
+
+        public IEnumerable<DiscoveredFile> Discover(string path, HashSet<string> existingSources)
+        {
+            string photosetId = path.Replace("/", "");
+            int page = 1;
+            int maxPages = 1;
+
+            while (page <= maxPages)
+            {
+                // existing sources gives us a list of photoset ids
+                PagedPhotoCollection photos;
                 try
                 {
-                    var photoSets = _flickr.PhotosetsGetList();
-
-                    foreach (var photoSet in photoSets)
+                    if (photosetId == "")
                     {
-                        _existingSources = _metadataStore.ExistingSources(GetName(), photoSet.PhotosetId + "/");
-                        var photosInSet = _flickr.PhotosetsGetPhotos(photoSet.PhotosetId, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl);
-                        Discover(_existingSources, photosInSet, photoSet.PhotosetId);
+                        photos = _flickr.PhotosGetNotInSet(page, 100, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl);
                     }
-                    var photos = _flickr.PhotosGetNotInSet();
-                    _existingSources = _metadataStore.ExistingSources(GetName(), "/");
-                    Discover(_existingSources, photos, "");
-
-                    while(maxThread.CurrentCount < MAX_THREADS)
+                    else
                     {
-                        Thread.Sleep(1000);
+                        photos = _flickr.PhotosetsGetPhotos(photosetId, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl, page, 100);
                     }
-
-                    done = true;
+                    maxPages = photos.Pages;
+                    page++;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine(ex.Message);
-                    done = false;
+                    photos = new PhotoCollection();
                 }
-            }
-            return Task.CompletedTask;
-        }
 
-        private void Discover(HashSet<string> existingSources, PagedPhotoCollection photos, string photoSetId)
-        {
-            foreach (var photo in photos)
-            {
-                if (!_existingSources.Contains(photoSetId + "/" + photo.PhotoId))
+                foreach (var photo in photos)
                 {
-                    if (photo.MediaStatus == "failed")
+                    if (!existingSources.Contains(path + photo.PhotoId))
                     {
-                        continue;
-                    }
-                    string url = photo.OriginalUrl;
-                    if (url == null)
-                    {
-                        url = photo.LargeUrl;
-                    }
-                    if (url == null)
-                    {
-                        url = photo.MediumUrl;
-                    }
+                        if (photo.MediaStatus == "failed")
+                        {
+                            continue;
+                        }
+                        string url = photo.OriginalUrl;
+                        if (url == null)
+                        {
+                            url = photo.LargeUrl;
+                        }
+                        if (url == null)
+                        {
+                            url = photo.MediumUrl;
+                        }
 
-                    maxThread.Wait();
-                    ThreadPool.QueueUserWorkItem(DownloadPicture, new DownloadState { PhotoId = photo.PhotoId, PhotosetId = photoSetId, Title = photo.Title, Url = url });
+                        yield return
+                            new DiscoveredFile
+                            {
+                                Name = photo.Title,
+                                Path = path + photo.PhotoId,
+                                Url = url
+                            };
+                    }
                 }
             }
         }
 
-        private void DownloadPicture(Object stateInfo)
-        {
-            var downloadinfo = stateInfo as DownloadState;
-            try
-            {
-                using (WebClient wc = new WebClient())
-                {
-                    var data = wc.DownloadData(downloadinfo.Url);
-                    var stream = new MemoryStream(data);
-                    string metadata = GetMetadata(downloadinfo.PhotoId);
-                    _metadataStore.AddDiscoveredFile(stream, downloadinfo.Title, downloadinfo.PhotosetId + "/" + downloadinfo.PhotoId, metadata, GetName());
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(ex.Message);
-            }
-            maxThread.Release();
-        }
 
-        private string GetMetadata(string photoId)
+        public async Task<string> GetMetadata(string path)
         {
+            string photoId = path.Split('/')[1];
+
             var info = _flickr.PhotosGetInfo(photoId);
             var exif = _flickr.PhotosGetExif(photoId);
             var contexts = _flickr.PhotosGetAllContexts(photoId);
@@ -180,7 +163,7 @@ namespace Placeless.Source.Flickr
                 j.Add(e.TagSpace + "." + e.Tag, e.CleanOrRaw);
             });
 
-            return j.ToString();
+            return await Task.FromResult(j.ToString());
 
         }
 
@@ -189,15 +172,10 @@ namespace Placeless.Source.Flickr
             return name.Replace(' ', '_').Replace('/', '_').Replace('-', '_');
         }
 
-
-        public Task Retrieve()
-        {
-            throw new NotImplementedException();
-        }
-
         public string GetName()
         {
             return "Flickr";
         }
+
     }
 }

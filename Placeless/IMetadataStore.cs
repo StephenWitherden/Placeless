@@ -3,15 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Placeless
 {
     public interface IMetadataStore
     {
-        void AddDiscoveredFile(Stream fileStream, string Title, string originalLocation, string metadata, string sourceName);
+        Task AddDiscoveredFile(Stream fileStream, string Title, string originalLocation, string metadata, string sourceName);
         void RefreshMetadata();
         HashSet<string> ExistingSources(string sourceName, string startswith);
-        void UpdateMetadataForSource(string existingSource, string metadata);
+        Task UpdateMetadataForSource(string existingSource, string metadata);
         IList<File> FilesMissingAttribute(string attributeName);
         IList<string> AllAttributeValues(string metadataType);
         void SetAttribute(int id, string attributeName, string value);
