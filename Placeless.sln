@@ -17,6 +17,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Placeless.Generator", "Plac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Placeless.Source.Flickr", "Placeless.Source.Flickr\Placeless.Source.Flickr.csproj", "{50FA47A6-A251-4605-B94F-E7CBC3A730FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Placeless.Source.Telegram", "Placeless.Source.Telegram\Placeless.Source.Telegram.csproj", "{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
