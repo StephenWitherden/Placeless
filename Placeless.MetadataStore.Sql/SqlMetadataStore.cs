@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Placeless.MetadataStore.Sql
 {
@@ -45,39 +46,41 @@ namespace Placeless.MetadataStore.Sql
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
-                var results = dbContext.FileSources
-                    .Where(s => s.Source.Name == sourceName)
-                    .Where(s => s.SourceUri.StartsWith(startsWith))
-                    .Select(fs => fs.SourceUri);
+                startsWith += '%';
+
+                var results = dbContext
+                    .FileSources.FromSql($"SELECT * FROM FileSources with (nolock) WHERE SourceUri Like {startsWith} and CHARINDEX( '\\', sourceUri, {startsWith.Length + 1}) = 0 ")
+                    .Where(f => f.Source.Name == sourceName)
+                    .Select(s => s.SourceUri.ToLower());
                 return new HashSet<string>(results);
             }
         }
 
-        public void AddDiscoveredFile(Stream fileStream, string title, string originalLocation, string metadata, string sourceName)
+        public async Task AddDiscoveredFile(Stream fileStream, string title, string originalLocation, string metadata, string sourceName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
 
-                var fileSource = dbContext.FileSources.Where(s => s.SourceUri == originalLocation).FirstOrDefault();
-                if (fileSource != null)
+                var matchingFileSource = await dbContext.FileSources.Where(s => s.SourceUri == originalLocation).AnyAsync();
+                if (matchingFileSource)
                 {
                     return;
                 }
 
-                var source = dbContext.Sources.Where(s => s.Name.ToLower() == sourceName.ToLower()).FirstOrDefault();
+                var source = await dbContext.Sources.Where(s => s.Name.ToLower() == sourceName.ToLower()).FirstOrDefaultAsync();
                 if (source == null)
                 {
                     source = new Source
                     {
                         Name = sourceName
                     };
-                    dbContext.Add(source);
-                    dbContext.SaveChanges();
+                    await dbContext.AddAsync(source);
+                    await dbContext.SaveChangesAsync();
                 }
 
                 string hash = CalculateMD5(fileStream);
                 fileStream.Seek(0, SeekOrigin.Begin);
-                var file = dbContext.Files.Where(f => f.Hash == hash).FirstOrDefault();
+                var file = await dbContext.Files.Where(f => f.Hash == hash).FirstOrDefaultAsync();
 
                 if (file != null)
                 {
@@ -104,22 +107,19 @@ namespace Placeless.MetadataStore.Sql
                         FileGuid = Guid.NewGuid(),
                         Title = title
                     };
-                    dbContext.Add(file);
-                    dbContext.SaveChanges();
+                    await dbContext.AddAsync(file);
+                    await dbContext.SaveChangesAsync();
                 }
 
-                if (fileSource == null)
+                var fileSource = new FileSource
                 {
-                    fileSource = new FileSource
-                    {
-                        FileId = file.Id,
-                        Metadata = metadata,
-                        SourceUri = originalLocation,
-                        SourceId = source.Id
-                    };
-                    dbContext.Add(fileSource);
-                    dbContext.SaveChanges();
-                }
+                    FileId = file.Id,
+                    Metadata = metadata,
+                    SourceUri = originalLocation,
+                    SourceId = source.Id
+                };
+                await dbContext.AddAsync(fileSource);
+                await dbContext.SaveChangesAsync();
             }
         }
 
@@ -148,17 +148,16 @@ namespace Placeless.MetadataStore.Sql
             throw new NotImplementedException();
         }
 
-        public void UpdateMetadataForSource(string existingSource, string metadata)
+        public async Task UpdateMetadataForSource(string existingSource, string metadata)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
-
                 var sources = dbContext.FileSources.Where(e => e.SourceUri == existingSource);
                 foreach (var fileSource in sources)
                 {
                     fileSource.Metadata = metadata;
                 }
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync();
             }
         }
 
