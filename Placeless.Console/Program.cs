@@ -35,10 +35,15 @@ namespace Placeless.Console
                 return; // exit app
             }
 
+            string settingsFile = "appsettings.json";
+
+#if DEBUG
+            settingsFile = "appsettings.Development.json";
+#endif
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(AppContext.BaseDirectory))
-                .AddJsonFile("appsettings.json", optional: false);
+                .AddJsonFile(settingsFile, optional: false);
 
             var configuration = builder.Build();
 
