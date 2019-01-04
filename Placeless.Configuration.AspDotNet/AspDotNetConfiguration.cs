@@ -16,7 +16,7 @@ namespace Placeless.Configuration.AspDotNet
 
         public string GetValue(string path)
         {
-            return _configuration.GetValue<String>(path);
+            return _configuration[path];
         }
 
         public IEnumerable<string> GetValues(string path)

@@ -30,7 +30,7 @@ namespace Placeless.Source.Telegram
             _userInteraction = userInteraction;
         }
 
-        public async Task Discover()
+        public IEnumerable<DiscoveredFile> Discover()
         {
             var settings = new FactorySettings
             {
@@ -51,7 +51,7 @@ namespace Placeless.Source.Telegram
                 }
             };
 
-            _clientApi = await ClientFactory.BuildClientAsync(settings);
+            _clientApi = ClientFactory.BuildClientAsync(settings).Result;
             _clientApi.KeepAliveConnection();
             if (!_clientApi.AuthService.CurrentUserId.HasValue)
             {
@@ -64,12 +64,11 @@ namespace Placeless.Source.Telegram
 
             foreach(TChat chat in dialogs.Chats)
             {
-                await Discover(chat.Id);
+                yield return Discover(chat.Id);
             }
-            return;
         }
 
-        private async Task Discover(int id)
+        private IEnumerable<string> Discover(int id)
         {
             var searchRequest = new SearchChatMessages
             {
@@ -77,10 +76,10 @@ namespace Placeless.Source.Telegram
                 Filter = new SearchMessagesFilter.SearchMessagesFilterPhotoAndVideo(),                
             };
             searchRequest.ChatId = id;
-            
+
 
             //var messages = await _clientApi.MessagesService.CustomRequestsService.SendRequestAsync(searchRequest);
-
+            return new string[] { };
         }
 
         public string GetName()
@@ -88,9 +87,5 @@ namespace Placeless.Source.Telegram
             return "Telegram";
         }
 
-        public Task Retrieve()
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using MetadataExtractor;
 using Newtonsoft.Json.Linq;
 using Placeless;
@@ -108,7 +107,7 @@ namespace Placeless.Source.Windows
         private string ExpandAttributes(FileAttributes fileAttributes)
         {
             var activeFlags = enums.Where(e => fileAttributes.HasFlag(e)).Select(e => Enum.GetName(typeof(FileAttributes), e));
-            return string.Join(',', activeFlags);
+            return string.Join(",", activeFlags);
         }
 
         private string Clean(string name)

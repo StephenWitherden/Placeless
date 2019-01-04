@@ -13,6 +13,7 @@
   <ItemGroup>
     <Content Include="appsettings.Development.json">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="appsettings.json">
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
@@ -29,7 +30,6 @@
     <ProjectReference Include="..\Placeless.Generator\Placeless.Generator.csproj" />
     <ProjectReference Include="..\Placeless.MetadataStore.Sql\Placeless.MetadataStore.Sql.csproj" />
     <ProjectReference Include="..\Placeless.Source.Flickr\Placeless.Source.Flickr.csproj" />
-    <ProjectReference Include="..\Placeless.Source.Telegram\Placeless.Source.Telegram.csproj" />
     <ProjectReference Include="..\Placeless.Source.Windows\Placeless.Source.Windows.csproj" />
     <ProjectReference Include="..\Placeless\Placeless.csproj" />
   </ItemGroup>
