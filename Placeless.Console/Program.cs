@@ -56,7 +56,7 @@ namespace Placeless.Console
             ////generator.Generate(new CreatedYearAttributeGenerator());
             ////generator.Generate(new MediumThumbnailGenerator());
 
-            var collector = new Collector(store, source, interaction);
+            var collector = new Collector<FlickrSource>(store, source, interaction);
 
             var discoveryTask = collector.Discover();
 

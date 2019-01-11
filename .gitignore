@@ -260,4 +260,3 @@ paket-files/
 __pycache__/
 *.pyc
 /Placeless.Console/appsettings.Development.json
-/Placeless.App.Windows

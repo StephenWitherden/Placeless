@@ -23,5 +23,26 @@ namespace Placeless.Configuration.AspDotNet
         {
             return _configuration.GetSection(path).AsEnumerable().Select(s => s.Value);
         }
+
+        public void Save()
+        {
+            
+        }
+
+        public void SetValue(string path, string value)
+        {
+            _configuration[path] = value;
+        }
+
+        public void SetValues(string path, IEnumerable<string> values)
+        {
+            int i = 0;
+            foreach (var value in values)
+            {
+                _configuration[$"{path}:{i}"] = value;
+                i++;
+            }
+
+        }
     }
 }

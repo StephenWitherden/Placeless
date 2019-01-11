@@ -23,6 +23,9 @@ namespace Placeless.Source.Windows
         private readonly IPlacelessconfig _configuration;
         private readonly IEnumerable<string> _fileTypes;
 
+        public const string PATHS_SETTING = "FileSystem:Paths";
+        public const string EXTENSIONS_SETTING = "FileSystem:Extensions";
+
         private List<Enum> enums = new List<Enum>();
 
         public WindowsSource(IMetadataStore store, IPlacelessconfig configuration)
@@ -33,7 +36,7 @@ namespace Placeless.Source.Windows
             {
                 enums.Add(enumValue);
             }
-            _fileTypes = _configuration.GetValues("FileSystem:Extensions")
+            _fileTypes = _configuration.GetValues(EXTENSIONS_SETTING)
                 .Where(f => !(string.IsNullOrWhiteSpace(f)))
                 .ToList();
         }
@@ -42,7 +45,7 @@ namespace Placeless.Source.Windows
         public IEnumerable<string> GetRoots()
         {
             ConcurrentQueue<string> inputs = new ConcurrentQueue<string>();
-            var items = _configuration.GetValues("FileSystem:Paths")
+            var items = _configuration.GetValues(PATHS_SETTING)
                 .Where(p => !(string.IsNullOrWhiteSpace(p)));
 
             foreach (var item in items)

@@ -14,6 +14,12 @@ namespace Placeless.Source.Flickr
 {
     public class FlickrSource : ISource
     {
+        public static string TOKEN_PATH = "Flickr:Token";
+        public static string ENABLED_PATH = "Flickr:Enabled";
+
+        const string API_KEY = "c8cd6dd8f93f95b681a5e1ea321b6c5f";
+        const string API_SECRET = "88ee851e6d54b867";
+
         private readonly IMetadataStore _metadataStore;
         private readonly IPlacelessconfig _configuration;
         private readonly FlickrNet.Flickr _flickr;
@@ -31,17 +37,23 @@ namespace Placeless.Source.Flickr
         {
             _metadataStore = store;
             _configuration = configuration;
-            _flickr = new FlickrNet.Flickr(_configuration.GetValue("Flickr:ApiKey"), _configuration.GetValue("Flickr:SharedSecret"));
             _userInteraction = userInteraction;
+            _flickr = new FlickrNet.Flickr(API_KEY, API_SECRET);
 
-            var requestToken = _flickr.OAuthGetRequestToken("oob");
+            var token = _configuration.GetValue(TOKEN_PATH);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                var requestToken = _flickr.OAuthGetRequestToken("oob");
+                string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Read);
+                _userInteraction.OpenWebPage(url);
+                string approvalCode = _userInteraction.InputPrompt("Please approve access to your Flickr account and enter the key here:");
 
-            string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Read);
-            _userInteraction.OpenWebPage(url);
-            string key = _userInteraction.InputPrompt("Please approve access to your Flickr account and enter the key here:");
+                var accessToken = _flickr.OAuthGetAccessToken(requestToken, approvalCode);
+                token = accessToken.Token;
+                _configuration.SetValue(TOKEN_PATH, token);
+            }
+            _flickr.OAuthAccessToken = token;
 
-            var accessToken = _flickr.OAuthGetAccessToken(requestToken, key);
-            _flickr.OAuthAccessToken = accessToken.Token;
         }
 
         public IEnumerable<string> GetRoots()

@@ -7,10 +7,11 @@ using System.Text;
 
 namespace Placeless.Generator.Windows
 {
-    public class SmallThumbnailGenerator : ThumbnailGenerator
+    public class LargeThumbnailGenerator : ThumbnailGenerator
     {
-        public override int MaxDimension => 80;
+        public override int MaxDimension => 320;
 
-        public override string VersionTypeName => "Small Thumbnail";
+        public override string VersionTypeName => "Large Thumbnail";
+
     }
 }
