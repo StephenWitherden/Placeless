@@ -9,7 +9,7 @@ namespace Placeless.Generator.Windows
 {
     public class MediumThumbnailGenerator : ThumbnailGenerator
     {
-        public override int MaxDimension => 640;
+        public override int MaxDimension => 160;
 
         public override string VersionTypeName => "Medium Thumbnail";
 

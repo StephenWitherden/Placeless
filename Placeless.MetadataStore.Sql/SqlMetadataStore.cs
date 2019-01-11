@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -9,13 +10,14 @@ using System.Threading.Tasks;
 
 namespace Placeless.MetadataStore.Sql
 {
+    
     public class SqlMetadataStore : IMetadataStore
     {
         private readonly IPlacelessconfig _configuration;
         private readonly DbContextOptions _dbContextOptions;
         private readonly IUserInteraction _userInteraction;
 
-        const string CONNECTION_STRING_SETTING = "ConnectionStrings:PlacelessDatabase";
+        public const string CONNECTION_STRING_SETTING = "ConnectionStrings:PlacelessDatabase";
 
         public SqlMetadataStore(IPlacelessconfig configuration, IUserInteraction userInteraction)
         {
@@ -31,6 +33,11 @@ namespace Placeless.MetadataStore.Sql
                 _configuration.GetValue(CONNECTION_STRING_SETTING),
                 options => options.CommandTimeout(120)
                 ).Options;
+
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                dbContext.Database.Migrate();
+            }
         }
 
         static string CalculateMD5(Stream stream)
@@ -161,7 +168,8 @@ namespace Placeless.MetadataStore.Sql
             }
         }
 
-        public IList<Placeless.File> FilesMissingAttribute(string attributeName)
+
+        public int CountFilesMissingAttribute(string attributeName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
@@ -175,12 +183,11 @@ namespace Placeless.MetadataStore.Sql
 
                 return dbContext.Files
                     .Where(f => !f.FileAttributeValues.Any(v => v.AttributeValue.AttributeId == attribute.Id))
-                    .Select(f => new Placeless.File { Id = f.Id, Metadata = f.FileSources.Select(s => s.Metadata) })
-                    .ToList();
+                    .Count();
             }
         }
 
-        public void SetAttribute(int id, string attributeName, string value)
+        public IEnumerable<Placeless.File> FilesMissingAttribute(string attributeName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
@@ -192,33 +199,71 @@ namespace Placeless.MetadataStore.Sql
                     dbContext.SaveChanges();
                 }
 
-                var attributeValue = dbContext.AttributeValues.Where(a => a.AttributeId == attribute.Id & a.Value == value).FirstOrDefault();
+                var files = dbContext.Files
+                    .Where(f => !f.FileAttributeValues.Any(v => v.AttributeValue.AttributeId == attribute.Id))
+                    .Select(f => new Placeless.File { Id = f.Id, Metadata = f.FileSources.Select(s => s.Metadata) });
+
+                foreach (var file in files)
+                {
+                    yield return file;
+                }
+
+            }
+        }
+
+        public async Task SetAttribute(int id, string attributeName, string value)
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                var attribute = await dbContext.Attributes.Where(a => a.Name == attributeName).FirstOrDefaultAsync();
+                if (attribute == null)
+                {
+                    attribute = new Attribute { Name = attributeName };
+                    await dbContext.AddAsync(attribute);
+                    await dbContext.SaveChangesAsync();
+                }
+
+                var attributeValue = await dbContext.AttributeValues.Where(a => a.AttributeId == attribute.Id & a.Value == value).FirstOrDefaultAsync();
                 if (attributeValue == null)
                 {
                     attributeValue = new AttributeValue { AttributeId = attribute.Id, Value = value };
-                    dbContext.Add(attributeValue);
-                    dbContext.SaveChanges();
+                    await dbContext.AddAsync(attributeValue);
+                    await dbContext.SaveChangesAsync();
                 }
 
-                var fileAttributeValue = dbContext.FileAttributeValues
-                    .Where(a => a.FileId == id && a.AttributeValueId == attributeValue.Id).FirstOrDefault();
+                var fileAttributeValue = await dbContext.FileAttributeValues
+                    .Where(a => a.FileId == id && a.AttributeValueId == attributeValue.Id).FirstOrDefaultAsync();
                 if (fileAttributeValue == null)
                 {
                     fileAttributeValue = new FileAttributeValue { FileId = id, AttributeValueId = attributeValue.Id };
-                    dbContext.Add(fileAttributeValue);
-                    dbContext.SaveChanges();
+                    await dbContext.AddAsync(fileAttributeValue);
+                    await dbContext.SaveChangesAsync();
                 }
             }
         }
 
-        public IList<Placeless.File> FilesMissingAttributeVersion(string versionTypeName)
+        public IEnumerable<Placeless.File> FilesMissingAttributeVersion(string versionTypeName)
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                var files = dbContext.Files
+                    .Where(f => !(f.Versions.Any(v => v.VersionType.Name == versionTypeName)))
+                    .Select(f => new Placeless.File { Id = f.Id }); 
+
+                foreach (var file in files)
+                {
+                    yield return file;
+                }
+            }
+        }
+
+        public int CountFilesMissingAttributeVersion(string versionTypeName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
                 return dbContext.Files
                     .Where(f => !(f.Versions.Any(v => v.VersionType.Name == versionTypeName)))
-                    .Select(f => new Placeless.File { Id = f.Id })
-                    .ToList();
+                    .Count();
             }
         }
 
@@ -231,24 +276,24 @@ namespace Placeless.MetadataStore.Sql
             }
         }
 
-        public void AddVersion(int fileId, string versionTypeName, string thumbnailString)
+        public async Task AddVersion(int fileId, string versionTypeName, string thumbnailString)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
-                var versionType = dbContext.VersionTypes.Where(vt => vt.Name == versionTypeName).FirstOrDefault();
+                var versionType = await dbContext.VersionTypes.Where(vt => vt.Name == versionTypeName).FirstOrDefaultAsync();
                 if (versionType == null)
                 {
                     versionType = new VersionType
                     {
                         Name = versionTypeName
                     };
-                    dbContext.VersionTypes.Add(versionType);
-                    dbContext.SaveChanges();
+                    await dbContext.VersionTypes.AddAsync(versionType);
+                    await dbContext.SaveChangesAsync();
                 }
 
-                var version = dbContext.Versions
+                var version = await dbContext.Versions
                     .Where(v => v.FileId == fileId && v.VersionTypeId == versionType.Id)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
 
 
                 if (version == null)
@@ -259,19 +304,19 @@ namespace Placeless.MetadataStore.Sql
                         VersionTypeId = versionType.Id,
                         Contents = thumbnailString
                     };
-                    dbContext.Versions.Add(version);
-                    dbContext.SaveChanges();
+                    await dbContext.Versions.AddAsync(version);
+                    await dbContext.SaveChangesAsync();
                 }
             }
         }
 
-        public IList<string> AllAttributeValues(string attributeName)
+        public IEnumerable<Placeless.AttributeValue> AllAttributeValues(string attributeName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
                 return dbContext.AttributeValues.Where(a => a.Attribute.Name == attributeName)
-                    .Select(a => a.Value)
-                    .OrderBy(v => v)
+                    .OrderBy(a => a.Value)
+                    .Select(a => new Placeless.AttributeValue { AttributeId = a.AttributeId, Id = a.Id, Value = a.Value }  )
                     .ToList();
             }
         }
@@ -285,9 +330,46 @@ namespace Placeless.MetadataStore.Sql
                         v.File.FileAttributeValues.Any
                             (f => f.AttributeValue.Value == attributeValue && 
                             f.AttributeValue.Attribute.Name == attributeName))
-                    .Select(a => new Thumbnail { Content = a.Contents, Fileid = a.FileId }).ToList();
+                    .Select(a => new Thumbnail { Content = a.Contents, Fileid = a.FileId, Title = a.File.Title }).ToList();
             }
         }
 
+        public IList<Thumbnail> ThumbnailsForAttributeValue(int attributeValueId)
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                return dbContext.Versions.Where
+                    (v => v.VersionType.Name == "Medium Thumbnail" &&
+                        v.File.FileAttributeValues.Any
+                            (f => f.AttributeValueId == attributeValueId))
+                    .Select(a => new Thumbnail { Content = a.Contents, Fileid = a.FileId, Title = a.File.Title }).ToList();
+            }
+        }
+
+        const string SQL_CREATE_DATABASE = @"CREATE DATABASE [{0}]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'{0}', FILENAME = N'{1}' , SIZE = 65536KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB ), 
+ FILEGROUP [{0}_Files] CONTAINS FILESTREAM  DEFAULT
+( NAME = N'{0}_Files', FILENAME = N'{2}' , MAXSIZE = UNLIMITED)
+ LOG ON 
+( NAME = N'{0}_Log', FILENAME = N'{3}' , SIZE = 65536KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )";
+
+        public static void CreateDatabase(string connectionString, string databaseName, string mdf, string ldf, string fileStream)
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(connectionString);
+            builder.InitialCatalog = "Master";
+
+            using (SqlConnection con = new SqlConnection(builder.ConnectionString))
+            {
+                con.Open();
+                string sql = string.Format(SQL_CREATE_DATABASE, databaseName, mdf, fileStream, ldf);
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    cmd.CommandTimeout = 999;
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
 }

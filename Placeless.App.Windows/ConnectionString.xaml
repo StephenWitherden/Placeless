@@ -1,0 +1,44 @@
+﻿<Window x:Class="Placeless.App.Windows.ConnectionString"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Placeless.App.Windows"
+        mc:Ignorable="d"
+        Title="ConnectionString" Height="312.5" Width="300" Loaded="Window_Loaded">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <GroupBox Header="Server Name">
+                <TextBox x:Name="txtServerName">
+
+                </TextBox>
+            </GroupBox>
+            <GroupBox Header="Authentication">
+                <StackPanel>
+                    <TextBlock>Authentication Method:</TextBlock>
+                    <ComboBox x:Name="cboAuthenticationMethod" SelectionChanged="cboAuthenticationMethod_SelectionChanged">
+                        <ComboBoxItem>Windows Authentication</ComboBoxItem>
+                        <ComboBoxItem>SQL Server Authentication</ComboBoxItem>
+                    </ComboBox>
+                    <StackPanel x:Name="pnlUserNamePassword" Visibility="Collapsed">
+                        <TextBlock>Username:</TextBlock>
+                        <TextBox x:Name="txtUserName"></TextBox>
+                        <TextBlock>Password:</TextBlock>
+                        <PasswordBox x:Name="txtPassword"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Header="Database">
+                <StackPanel>
+                    <ComboBox x:Name="cboDatabase" IsEditable="True" DropDownOpened="cboDatabase_DropDownOpened" ></ComboBox>
+                    <Button x:Name="btnNewDatabase" Click="btnNewDatabase_Click">Create New Database</Button>
+
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+        <Grid DockPanel.Dock="Bottom">
+            <Button x:Name="btnOK" IsDefault="True" Content="OK" HorizontalAlignment="Right" Margin="0,0,10,10" VerticalAlignment="Bottom" Width="75" RenderTransformOrigin="0.891,1.511" Click="btnOK_Click" />
+            <Button x:Name="btnCancel" IsCancel="True" Content="Cancel" HorizontalAlignment="Right" Margin="0,0,94,10" VerticalAlignment="Bottom" Width="75" RenderTransformOrigin="0.891,1.511"/>
+        </Grid>
+    </DockPanel>
+</Window>

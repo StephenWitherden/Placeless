@@ -9,7 +9,8 @@ using System.Threading.Tasks.Dataflow;
 
 namespace Placeless
 {
-    public class Collector 
+    public class Collector<T> : IProgressReporter
+        where T : ISource
     {
         private readonly IMetadataStore _metadataStore;
         private readonly ISource _source;
@@ -55,7 +56,7 @@ namespace Placeless
             }
         }
 
-        public Collector(IMetadataStore metadataStore, ISource source, IUserInteraction userInteraction)
+        public Collector(IMetadataStore metadataStore, T source, IUserInteraction userInteraction)
         {
             _metadataStore = metadataStore;
             _source = source;
@@ -226,6 +227,12 @@ namespace Placeless
             getRoots.Start();
 
             await injestFileBlock.Completion;
+        }
+
+        public IEnumerable<ProgressReport> GetReports()
+        {
+            yield return new ProgressReport { Category = "Roots", Current = ProcessedRoots, Max = DiscoveredRoots };
+            yield return new ProgressReport { Category = "Files", Current = ProcessedFiles, Max = DiscoveredFiles };
         }
     }
 }

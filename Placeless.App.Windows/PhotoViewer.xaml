@@ -1,0 +1,56 @@
+﻿<Page x:Class="Placeless.App.Windows.PhotoViewer"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:Placeless.App.Windows"
+      mc:Ignorable="d" 
+      d:DesignHeight="300" d:DesignWidth="300"
+      Title="PhotoViewer" Loaded="Page_Loaded">
+    <Page.Resources>
+        <local:Base64ImageConverter x:Key="Base64ImageConverter"/>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="100"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="100*"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+            <ColumnDefinition Width="100*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <TreeView x:Name="tvAttributeValues" Grid.Column="0" ItemsSource="{Binding RootValues}" SelectedItemChanged="tvAttributeValues_SelectedItemChanged" >
+            <TreeView.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Value}"></TextBlock>
+                </DataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" />
+        <ListBox x:Name="lvPhotos" Grid.Column="2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding Files}" >
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <Image MaxWidth="160" MaxHeight="160" Source="{Binding Content, Converter={StaticResource Base64ImageConverter}}"></Image>
+                        <TextBlock Text="{Binding Title}"></TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" />
+        <Grid Grid.Column="4">
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <Image Source="{Binding SelectedFile.Image}" Grid.Row="0"></Image>
+            <GridSplitter Grid.Row="1" Height="5" VerticalAlignment="Stretch" />
+            <TextBlock Text="{Binding SelectedFile.Metadata}" Grid.Row="2"></TextBlock>
+        </Grid>
+    </Grid>
+</Page>
