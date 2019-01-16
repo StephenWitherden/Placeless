@@ -127,6 +127,7 @@ namespace Placeless.Source.Windows
                 .Select(filePath => new DiscoveredFile
                 {
                     Name = Path.GetFileName(filePath),
+                    Extension = System.IO.Path.GetExtension(filePath),
                     Path = filePath,
                     Url = filePath
                 });

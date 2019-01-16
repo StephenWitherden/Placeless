@@ -12,7 +12,7 @@ namespace Placeless.App.Windows.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.5.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "15.9.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -80,13 +80,25 @@ namespace Placeless.App.Windows.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public string Flickr_Enabled {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Blob_Root {
             get {
-                return ((string)(this["Flickr_Enabled"]));
+                return ((string)(this["Blob_Root"]));
             }
             set {
-                this["Flickr_Enabled"] = value;
+                this["Blob_Root"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string Flickr_Secret {
+            get {
+                return ((string)(this["Flickr_Secret"]));
+            }
+            set {
+                this["Flickr_Secret"] = value;
             }
         }
     }

@@ -31,13 +31,17 @@
 
                 </RibbonApplicationMenu>
             </Ribbon.ApplicationMenu>
-
             <RibbonTab x:Name="rbnTabActions" Header="Actions">
+                <RibbonGroup x:Name="rbnView" Header="View">
+                    <RibbonButton x:Name="btnViewGallery" Label="Gallery" LargeImageSource="Images/ImageStack_32x.png" Click="btnViewGallery_Click"/>
+                </RibbonGroup>
+                <RibbonGroup x:Name="rbnCollect" Header="Collect Files from">
+                    <RibbonButton x:Name="btnCollectFlickr" Label="Flickr" LargeImageSource="Images/Download_32x.png" Click="btnCollectFlickr_Click"/>
+                    <RibbonButton x:Name="btnCollectWindows" Label="Folders" LargeImageSource="Images/Download_32x.png" Click="btnCollectFolders_Click"/>
+                </RibbonGroup>
                 <RibbonGroup x:Name="rbnGrRefresh" Header="Files &amp; Metadata">
-                    <RibbonButton x:Name="btnCollect" Label="Collect Files" LargeImageSource="Images/Download_32x.png" Click="btnCollect_Click"/>
                     <RibbonButton x:Name="btnGenerateThumbnails" Label="Generate Thumbnails" LargeImageSource="Images/Image_32x.png" Click="btnGenerateThumbnails_Click" />
                     <RibbonButton x:Name="btnDeriveAttributes" Label="Derive Attributes" LargeImageSource="Images/DeriveAttributes_32x.png" Click="btnDeriveAttributes_Click"/>
-                    <RibbonButton x:Name="btnMetadata" Label="Refresh Metadata" LargeImageSource="Images/Refresh_grey_32x.png"/>
                 </RibbonGroup>
             </RibbonTab>
             <RibbonTab x:Name="rbnTabSettings" Header="Settings">
@@ -46,7 +50,6 @@
                 </RibbonGroup>
                 <RibbonGroup x:Name="rbnGrFileSystem" Header="Sources">
                     <RibbonButton x:Name="btnConfigureFileSystem" Label="File System" LargeImageSource="Images/Folder_32x.png" Click="btnConfigureFileSystem_Click" />
-                    <RibbonButton x:Name="btnConfigureFlickr" Label="Flickr" Click="btnConfigureFlickr_Click" />
                 </RibbonGroup>
             </RibbonTab>
         </Ribbon>
@@ -94,6 +97,24 @@
                     <TextBlock x:Name="progressBarText3" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Grid>
             </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory4" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar4" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText4" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory5" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar5" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText5" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>            
         </StatusBar>
     </Grid>
 </Window>

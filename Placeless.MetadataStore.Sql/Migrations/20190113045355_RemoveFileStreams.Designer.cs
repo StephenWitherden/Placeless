@@ -11,9 +11,10 @@ using System;
 namespace Placeless.MetadataStore.Sql.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20190113045355_RemoveFileStreams")]
+    partial class RemoveFileStreams
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,8 +53,6 @@ namespace Placeless.MetadataStore.Sql.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
-
-                    b.Property<string>("Extension");
 
                     b.Property<string>("Hash");
 

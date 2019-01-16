@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Placeless.BlobStore.FileSystem;
 using Placeless.Configuration.AspDotNet;
 using Placeless.Generator;
 using Placeless.Generator.Windows;
@@ -36,24 +37,17 @@ namespace Placeless.App.Windows
         private readonly IServiceCollection _servicecollection;
         private readonly IServiceProvider _serviceProvider;
         private readonly IPlacelessconfig _config;
-        private readonly BackgroundWorker collectWorker = new BackgroundWorker();
-        private readonly BackgroundWorker generateWorker = new BackgroundWorker();
 
         public MainWindow()
         {
             _servicecollection = new ServiceCollection();
-            string settingsFile = "appsettings.json";
-
-#if DEBUG
-            settingsFile = "appsettings.Development.json";
-#endif
-
 
             _config = new SettingsBasedConfig();
 
 
             _servicecollection.AddSingleton<IUserInteraction>(this);
             _servicecollection.AddSingleton<IPlacelessconfig>(_config);
+            _servicecollection.AddTransient<IBlobStore, FileSystemBlobStore>();
             _servicecollection.AddTransient<IMetadataStore, SqlMetadataStore>();
             _servicecollection.AddTransient<FlickrSource>();
             _servicecollection.AddTransient<WindowsSource>();
@@ -63,11 +57,14 @@ namespace Placeless.App.Windows
             _servicecollection.AddTransient<Collector<WindowsSource>>();
 
             _serviceProvider = _servicecollection.BuildServiceProvider();
-            collectWorker.DoWork += CollectWorker_DoWork;
-
-            generateWorker.DoWork += GenerateWorker_DoWork;
 
             InitializeComponent();
+
+            if (string.IsNullOrWhiteSpace(_config.GetValue(SqlMetadataStore.CONNECTION_STRING_SETTING)))
+            {
+                var wizard = new FirstTimeWizard(_config);
+                wizard.ShowDialog();
+            }
 
             ProgressGroups = new ProgressReportGroup[]
             {
@@ -75,42 +72,9 @@ namespace Placeless.App.Windows
                 new ProgressReportGroup { Category = progressCategory1, ProgressBar = progressBar1, ProgressBarText = progressBarText1 },
                 new ProgressReportGroup { Category = progressCategory2, ProgressBar = progressBar2, ProgressBarText = progressBarText2 },
                 new ProgressReportGroup { Category = progressCategory3, ProgressBar = progressBar3, ProgressBarText = progressBarText3 },
+                new ProgressReportGroup { Category = progressCategory4, ProgressBar = progressBar4, ProgressBarText = progressBarText4 },
+                new ProgressReportGroup { Category = progressCategory5, ProgressBar = progressBar5, ProgressBarText = progressBarText5 },
             };
-        }
-
-        private void GenerateWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            var generator = _serviceProvider.GetService<Placeless.Generator.Generator>();
-            var generatorTask = generator.Generate(new CreatedYearAttributeGenerator());
-
-            while (!generatorTask.Wait(1000))
-            {
-                ReportProgress(generator);
-            }
-            ReportProgress(generator);
-
-        }
-
-        private void CollectWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            var windowsCollector = _serviceProvider.GetService<Collector<WindowsSource>>();
-
-            var windowsTask = windowsCollector.Discover();
-            while (!windowsTask.Wait(1000))
-            {
-                ReportProgress(windowsCollector);
-            }
-            ReportProgress(windowsCollector);
-
-            var flickrCollector = _serviceProvider.GetService<Collector<FlickrSource>>();
-
-            var flickrTask = flickrCollector.Discover();
-            while (!flickrTask.Wait(1000))
-            {
-                ReportProgress(flickrCollector);
-            }
-            ReportProgress(flickrCollector);
-
         }
 
         public string InputPrompt(string prompt)
@@ -169,11 +133,6 @@ namespace Placeless.App.Windows
             //throw new NotImplementedException();
         }
 
-        private void btnCollect_Click(object sender, RoutedEventArgs e)
-        {
-            collectWorker.RunWorkerAsync();
-        }
-
         public ProgressReportGroup[] ProgressGroups { get; set; }
 
         delegate void ProgressReporterInvoker(IProgressReporter reporter);
@@ -186,10 +145,10 @@ namespace Placeless.App.Windows
                 return;
             }
 
-            int i = 0;
             foreach (var report in reporter.GetReports())
             {
-                if (report.Max > 0)
+                var i = findIndexFor(report.Category);
+                if (report.Max > 0 && report.Max != report.Current)
                 {
                     ProgressGroups[i].Category.Text = report.Category;
                     ProgressGroups[i].Category.Visibility = Visibility.Visible;
@@ -198,16 +157,39 @@ namespace Placeless.App.Windows
                     ProgressGroups[i].ProgressBar.Visibility = Visibility.Visible;
                     ProgressGroups[i].ProgressBarText.Text = $"{report.Current}/{report.Max}";
                     ProgressGroups[i].ProgressBarText.Visibility = Visibility.Visible;
+
                 }
-                i++;
+                if (report.Max == report.Current)
+                {
+                    ProgressGroups[i].Category.Text = "";
+                    ProgressGroups[i].Category.Visibility = Visibility.Collapsed;
+                    ProgressGroups[i].ProgressBar.Visibility = Visibility.Collapsed;
+                    ProgressGroups[i].ProgressBarText.Visibility = Visibility.Collapsed;
+                }
             }
-            while (i < 3)
+        }
+
+        private int findIndexFor(string category)
+        {
+            for (int i = 0; i < ProgressGroups.Length; i++)
             {
-                ProgressGroups[i].Category.Visibility = Visibility.Collapsed;
-                ProgressGroups[i].ProgressBar.Visibility = Visibility.Collapsed;
-                ProgressGroups[i].ProgressBarText.Visibility = Visibility.Collapsed;
-                i++;
+                if (ProgressGroups[i].Category.Text == category)
+                {
+                    return i;
+                }
             }
+
+            // find first non-zero or non-complete task
+            for (int i = 0; i < ProgressGroups.Length; i++)
+            {
+                if (ProgressGroups[i].Category.Text == "" || ProgressGroups[i].ProgressBar.Visibility == Visibility.Collapsed)
+                {
+                    return i;
+                }
+            }
+
+            // default to the last
+            return ProgressGroups.Length - 1;
         }
 
         private void btnConfigureFileSystem_Click(object sender, RoutedEventArgs e)
@@ -224,34 +206,78 @@ namespace Placeless.App.Windows
 
         private void btnDeriveAttributes_Click(object sender, RoutedEventArgs e)
         {
-            generateWorker.RunWorkerAsync();
-        }
+            var attributeGenerator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            attributeGenerator.Init(new CreatedYearAttributeGenerator());
+            watch(attributeGenerator).Start();
 
-        private void btnConfigureFlickr_Click(object sender, RoutedEventArgs e)
-        {
-            var settings = new FlickrSettings(_config);
-            settings.ShowDialog();
 
-            var db = _serviceProvider.GetService<IMetadataStore>();
-            var page = new PhotoViewer(db);
-            mainFrame.Navigate(page);
-
+            var generator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            generator.Init(new FlickrPhotosetAttributeGenerator());
+            watch(generator).Start();
         }
 
         private void btnGenerateThumbnails_Click(object sender, RoutedEventArgs e)
         {
-           var task = new Task(() =>
-           {
-               var generator = _serviceProvider.GetService<Placeless.Generator.Generator>();
-               var generatorTask = generator.Generate(new MediumThumbnailGenerator());
+            var generator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            generator.Init(new MediumThumbnailGenerator());
+            watch(generator).Start();
+        }
 
-               while (!generatorTask.Wait(1000))
+        private Task watch(IProgressReporter job)
+        {
+            Task watcher = new Task(() =>
+            {
+               var task = job.DoWork();
+               while (!task.Wait(1000))
                {
-                   ReportProgress(generator);
+                   ReportProgress(job);
                }
-               ReportProgress(generator);
-           });
-            task.Start();
+               ReportProgress(job);
+            }, TaskCreationOptions.LongRunning);
+            return watcher;
+        }
+
+        private void refreshMetadata()
+        {
+            var attributeGenerator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            attributeGenerator.Init(new CreatedYearAttributeGenerator());
+            watch(attributeGenerator).Start();
+
+            var generator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            generator.Init(new FlickrPhotosetAttributeGenerator());
+            watch(generator).Start();
+
+            var thumbnailGenerator = _serviceProvider.GetService<Placeless.Generator.Generator>();
+            thumbnailGenerator.Init(new MediumThumbnailGenerator());
+            watch(thumbnailGenerator).Start();
+        }
+
+        private void btnCollectFlickr_Click(object sender, RoutedEventArgs e)
+        {
+            var collector = _serviceProvider.GetService<Collector<FlickrSource>>();
+
+            var watchTask = watch(collector);
+
+            watchTask
+                .ContinueWith((t) =>
+               {
+                   refreshMetadata();
+               });
+
+            watchTask.Start();
+        }
+
+        private void btnCollectFolders_Click(object sender, RoutedEventArgs e)
+        {
+            var collector = _serviceProvider.GetService<Collector<WindowsSource>>();
+            watch(collector);
+        }
+
+        private void btnViewGallery_Click(object sender, RoutedEventArgs e)
+        {
+            var db = _serviceProvider.GetService<IMetadataStore>();
+            var page = new PhotoViewer(db);
+            mainFrame.Navigate(page);
         }
     }
 }

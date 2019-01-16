@@ -10,17 +10,31 @@ namespace Placeless.Generator
     public class Generator : IProgressReporter
     {
         private readonly IMetadataStore _metadataStore;
+        private AttributeGenerator _attributeGenerator;
+        private VersionGenerator _versionGenerator;
 
         public Generator(IMetadataStore store)
         {
             _metadataStore = store;
         }
 
+        public void Init(AttributeGenerator generator)
+        {
+            _attributeGenerator = generator;
+        }
+
+        public void Init(VersionGenerator generator)
+        {
+            _versionGenerator = generator;
+        }
+
         string activity = "Generating";
         int max = 0;
         int processed = 0;
 
-        public async Task Generate(AttributeGenerator generator)
+
+
+        private async Task Generate(AttributeGenerator generator)
         {
             activity = $"Generating " + generator.AttributeName;
 
@@ -31,16 +45,19 @@ namespace Placeless.Generator
 
             foreach (var file in files)
             {
-                string value = generator.GenerateAttribute(file);
-                if (value != null)
+                var values = generator.GenerateAttribute(file);
+                if (values != null)
                 {
-                    await _metadataStore.SetAttribute(file.Id, generator.AttributeName, value);
+                    foreach (var value in values)
+                    {
+                        await _metadataStore.SetAttribute(file.Id, generator.AttributeName, value);
+                    }
                 }
                 processed++;
             }
         }
 
-        public async Task Generate(VersionGenerator generator)
+        private async Task Generate(VersionGenerator generator)
         {
             activity = $"Generating " + generator.VersionTypeName;
 
@@ -71,6 +88,18 @@ namespace Placeless.Generator
             {
                 new ProgressReport { Category = activity, Current = processed, Max = max }
             };
+        }
+
+        public async Task DoWork()
+        {
+            if (_versionGenerator != null)
+            {
+                await Generate(_versionGenerator); 
+            }
+            if (_attributeGenerator != null)
+            {
+                await Generate(_attributeGenerator);
+            }
         }
     }
 }

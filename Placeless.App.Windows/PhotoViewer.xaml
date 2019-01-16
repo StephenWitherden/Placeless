@@ -18,15 +18,28 @@
             <ColumnDefinition Width="Auto"></ColumnDefinition>
             <ColumnDefinition Width="100*"></ColumnDefinition>
         </Grid.ColumnDefinitions>
-        <TreeView x:Name="tvAttributeValues" Grid.Column="0" ItemsSource="{Binding RootValues}" SelectedItemChanged="tvAttributeValues_SelectedItemChanged" >
-            <TreeView.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Value}"></TextBlock>
-                </DataTemplate>
-            </TreeView.ItemTemplate>
-        </TreeView>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="30"></RowDefinition>
+                <RowDefinition Height="100*"></RowDefinition>
+            </Grid.RowDefinitions>
+            <ComboBox x:Name="cboAttributes" Grid.Row="0" ItemsSource="{Binding Attributes}" SelectedItem="{Binding SelectedAttribute}"  ></ComboBox>
+            <TreeView Grid.Row="1" x:Name="tvAttributeValues" Grid.Column="0" ItemsSource="{Binding RootValues}" SelectedItemChanged="tvAttributeValues_SelectedItemChanged" >
+                <TreeView.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Value}">
+                            <TextBlock.ContextMenu>
+                                <ContextMenu>
+                                        <MenuItem x:Name="btnExportAttribute" Header="Export" Click="btnExportAttribute_Click" CommandTarget="{Binding Path=PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}"></MenuItem>
+                                </ContextMenu>
+                            </TextBlock.ContextMenu>
+                        </TextBlock>
+                    </DataTemplate>
+                </TreeView.ItemTemplate>
+            </TreeView>
+        </Grid>
         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" />
-        <ListBox x:Name="lvPhotos" Grid.Column="2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding Files}" >
+        <ListBox x:Name="lvPhotos" Grid.Column="2" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding Files}" SelectionChanged="LvPhotos_SelectionChanged"  >
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel/>
@@ -44,13 +57,15 @@
         <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" />
         <Grid Grid.Column="4">
             <Grid.RowDefinitions>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
-                <RowDefinition></RowDefinition>
+                <RowDefinition Height="100*"></RowDefinition>
+                <RowDefinition Height="5"></RowDefinition>
+                <RowDefinition Height="20*"></RowDefinition>
             </Grid.RowDefinitions>
-            <Image Source="{Binding SelectedFile.Image}" Grid.Row="0"></Image>
-            <GridSplitter Grid.Row="1" Height="5" VerticalAlignment="Stretch" />
-            <TextBlock Text="{Binding SelectedFile.Metadata}" Grid.Row="2"></TextBlock>
+            <local:ZoomBorder Grid.Row="0" x:Name="border" ClipToBounds="True">
+                <Image RenderOptions.BitmapScalingMode="HighQuality" Stretch="Uniform" x:Name="imgPreview"></Image>
+            </local:ZoomBorder>
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+            <TextBox x:Name="txtMetadata" Grid.Row="2"></TextBox>
         </Grid>
     </Grid>
 </Page>

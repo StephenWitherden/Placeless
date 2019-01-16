@@ -21,8 +21,11 @@ namespace Placeless.App.Windows
     /// </summary>
     public partial class CreateDatabase : Window
     {
-        public CreateDatabase()
+        private readonly string _rootPath;
+
+        public CreateDatabase(string rootPath)
         {
+            _rootPath = rootPath;
             InitializeComponent();
         }
 
@@ -90,6 +93,13 @@ namespace Placeless.App.Windows
             {
                 txtFileFolder.Text = dialog.FileName;
             }
+        }
+
+        private void TxtDatabaseName_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            txtDatabaseFile.Text = System.IO.Path.Combine(_rootPath, txtDatabaseName.Text+ ".mdf");
+            txtLogFile.Text = System.IO.Path.Combine(_rootPath, txtDatabaseName.Text+ ".ldf");
+            txtFileFolder.Text = System.IO.Path.Combine(_rootPath, txtDatabaseName.Text);
         }
     }
 }

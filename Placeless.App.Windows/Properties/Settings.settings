@@ -21,8 +21,11 @@
     <Setting Name="Flickr_Token" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="Flickr_Enabled" Type="System.String" Scope="User">
-      <Value Profile="(Default)">True</Value>
+    <Setting Name="Blob_Root" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Flickr_Secret" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
     </Setting>
   </Settings>
 </SettingsFile>

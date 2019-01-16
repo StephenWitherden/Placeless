@@ -2,27 +2,31 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Placeless.MetadataStore.Sql
 {
-    
     public class SqlMetadataStore : IMetadataStore
     {
         private readonly IPlacelessconfig _configuration;
         private readonly DbContextOptions _dbContextOptions;
         private readonly IUserInteraction _userInteraction;
+        private readonly IBlobStore _blobStore;
 
         public const string CONNECTION_STRING_SETTING = "ConnectionStrings:PlacelessDatabase";
 
-        public SqlMetadataStore(IPlacelessconfig configuration, IUserInteraction userInteraction)
+        public SqlMetadataStore(IPlacelessconfig configuration, IUserInteraction userInteraction, IBlobStore blobStore)
         {
             _configuration = configuration;
             _userInteraction = userInteraction;
+            _blobStore = blobStore;
+
             if (string.IsNullOrWhiteSpace(_configuration.GetValue(CONNECTION_STRING_SETTING)))
             {
                 _userInteraction.ReportError($"Missing expected configuration value: {CONNECTION_STRING_SETTING}");
@@ -63,7 +67,7 @@ namespace Placeless.MetadataStore.Sql
             }
         }
 
-        public async Task AddDiscoveredFile(Stream fileStream, string title, string originalLocation, string metadata, string sourceName)
+        public async Task AddDiscoveredFile(Stream fileStream, string title, string extension, string originalLocation, string metadata, string sourceName)
         {
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
@@ -92,7 +96,7 @@ namespace Placeless.MetadataStore.Sql
                 if (file != null)
                 {
                     // a matching file was found, but maybe it's a hash collision
-                    if (!StreamsAreEqual(fileStream, new MemoryStream(file.Contents, false)))
+                    if (!StreamsAreEqual(fileStream, _blobStore.Get(file.Id)))
                     {
                         // the files are actually different, force recreation of the file
                         file = null;
@@ -101,21 +105,15 @@ namespace Placeless.MetadataStore.Sql
 
                 if (file == null)
                 {
-                    if (fileStream.Length > int.MaxValue)
-                    {
-                        throw new ArgumentOutOfRangeException("fileStream.Length", fileStream.Length, "File too large");
-                    }
-                    MemoryStream ms = new MemoryStream((int)fileStream.Length);
-                    fileStream.CopyTo(ms);
                     file = new File
                     {
-                        Contents = ms.GetBuffer(),
                         Hash = hash,
-                        FileGuid = Guid.NewGuid(),
-                        Title = title
+                        Title = title,
+                        Extension = extension
                     };
                     await dbContext.AddAsync(file);
                     await dbContext.SaveChangesAsync();
+                    await _blobStore.PutAsync(fileStream, file.Id);
                 }
 
                 var fileSource = new FileSource
@@ -123,14 +121,14 @@ namespace Placeless.MetadataStore.Sql
                     FileId = file.Id,
                     Metadata = metadata,
                     SourceUri = originalLocation,
-                    SourceId = source.Id
+                    SourceId = source.Id,
                 };
                 await dbContext.AddAsync(fileSource);
                 await dbContext.SaveChangesAsync();
             }
         }
 
-        private bool StreamsAreEqual(Stream streamA, MemoryStream streamB)
+        private bool StreamsAreEqual(Stream streamA, Stream streamB)
         {
             try
             {
@@ -269,11 +267,7 @@ namespace Placeless.MetadataStore.Sql
 
         public Stream GetFileStream(int id)
         {
-            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
-            {
-                var file = dbContext.Files.Where(f => f.Id == id).FirstOrDefault();
-                return new MemoryStream(file.Contents);
-            }
+            return _blobStore.Get(id);
         }
 
         public async Task AddVersion(int fileId, string versionTypeName, string thumbnailString)
@@ -307,6 +301,18 @@ namespace Placeless.MetadataStore.Sql
                     await dbContext.Versions.AddAsync(version);
                     await dbContext.SaveChangesAsync();
                 }
+            }
+        }
+
+
+        public IEnumerable<string> AllAttributes()
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                return dbContext.Attributes
+                    .OrderBy(a => a.Name)
+                    .Select(a => a.Name)
+                    .ToList();
             }
         }
 
@@ -346,16 +352,19 @@ namespace Placeless.MetadataStore.Sql
             }
         }
 
-        const string SQL_CREATE_DATABASE = @"CREATE DATABASE [{0}]
- CONTAINMENT = NONE
- ON  PRIMARY 
-( NAME = N'{0}', FILENAME = N'{1}' , SIZE = 65536KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB ), 
- FILEGROUP [{0}_Files] CONTAINS FILESTREAM  DEFAULT
-( NAME = N'{0}_Files', FILENAME = N'{2}' , MAXSIZE = UNLIMITED)
- LOG ON 
-( NAME = N'{0}_Log', FILENAME = N'{3}' , SIZE = 65536KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )";
 
-        public static void CreateDatabase(string connectionString, string databaseName, string mdf, string ldf, string fileStream)
+        public IList<Placeless.File> FilesForAttributeValue(int attributeValueId)
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                return dbContext.Files.Where
+                    (f => f.FileAttributeValues.Any(f2 => f2.AttributeValueId == attributeValueId))
+                    .Select(f => new Placeless.File { Id = f.Id, Extension = f.Extension, Title = f.Title }).ToList();
+            }
+        }
+
+
+        public static string GetSqlPath(string connectionString)
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(connectionString);
             builder.InitialCatalog = "Master";
@@ -363,11 +372,50 @@ namespace Placeless.MetadataStore.Sql
             using (SqlConnection con = new SqlConnection(builder.ConnectionString))
             {
                 con.Open();
-                string sql = string.Format(SQL_CREATE_DATABASE, databaseName, mdf, fileStream, ldf);
+                string sql = "select top 1 physical_name FROM sys.master_files WHERE name = N'master'";
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    string path = cmd.ExecuteScalar().ToString();
+                    return Path.GetDirectoryName(path);
+                }
+            }
+        }
+
+        public IEnumerable<string> GetMetadata(int id)
+        {
+            using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+            {
+                return dbContext.FileSources
+                    .Where(s => s.FileId == id)
+                    .Select(s => s.Metadata)
+                    .ToList();
+            }
+        }
+
+
+
+        const string SQL_CREATE_DATABASE = @"CREATE DATABASE [{0}]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'{0}', FILENAME = N'{1}' , SIZE = 65536KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB ) 
+ LOG ON 
+( NAME = N'{0}_Log', FILENAME = N'{2}' , SIZE = 65536KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )";
+
+        public static void CreateDatabase(string connectionString, string databaseName, string mdf, string ldf)
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(connectionString);
+            builder.InitialCatalog = "Master";
+
+            using (SqlConnection con = new SqlConnection(builder.ConnectionString))
+            {
+                con.Open();
+                string sql = string.Format(SQL_CREATE_DATABASE, databaseName, mdf, ldf);
                 using (SqlCommand cmd = new SqlCommand(sql, con))
                 {
                     cmd.CommandTimeout = 999;
+
                     cmd.ExecuteNonQuery();
+
                 }
             }
         }

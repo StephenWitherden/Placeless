@@ -7,6 +7,6 @@ namespace Placeless
     public abstract class AttributeGenerator
     {
         public abstract string AttributeName { get; }
-        public abstract string GenerateAttribute(File file);
+        public abstract string[] GenerateAttribute(File file);
     }
 }

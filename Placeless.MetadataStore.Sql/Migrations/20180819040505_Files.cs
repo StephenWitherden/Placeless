@@ -76,10 +76,6 @@ namespace Placeless.MetadataStore.Sql.Migrations
                 table: "FileSources",
                 column: "SourceId");
 
-            migrationBuilder.Sql("alter table Files drop column FileGuid");
-            migrationBuilder.Sql("alter table Files ADD FileGuid [uniqueidentifier] unique ROWGUIDCOL  NOT NULL");
-            migrationBuilder.Sql("alter table Files drop column Contents");
-            migrationBuilder.Sql("alter table Files ADD Contents [varbinary](max) FILESTREAM NULL");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,8 +24,28 @@ namespace Placeless.App.Windows
     /// </summary>
     public partial class PhotoViewer : Page, INotifyPropertyChanged
     {
+        public ObservableCollection<string> Attributes { get; set; }
         public ObservableCollection<AttributeValue> RootValues { get; set; }
         public ObservableCollection<Thumbnail> Files { get; set; }
+
+        private string _selectedAttribute;
+        public string SelectedAttribute
+        {
+            get
+            {
+                return _selectedAttribute;
+            }
+            set
+            {
+                _selectedAttribute = value;
+                var values = _metadataStore.AllAttributeValues(_selectedAttribute);
+                RootValues.Clear();
+                foreach (var v in values)
+                {
+                    RootValues.Add(v);
+                }
+            }
+        }
 
         private readonly IMetadataStore _metadataStore;
 
@@ -34,12 +56,22 @@ namespace Placeless.App.Windows
             InitializeComponent();
             RootValues = new ObservableCollection<AttributeValue>();
             Files = new ObservableCollection<Thumbnail>();
+            Attributes = new ObservableCollection<string>();
+
+            var attributes = _metadataStore.AllAttributes();
+            foreach(var attribute in attributes)
+            {
+                Attributes.Add(attribute);
+            }
+            SelectedAttribute = attributes.FirstOrDefault();
+
+            cboAttributes.DataContext = this;
             tvAttributeValues.DataContext = this;
             lvPhotos.DataContext = this;
         }
 
-        private File _selectedFile;
-        public File SelectedFile
+        private DisplayFile _selectedFile;
+        public DisplayFile SelectedFile
         {
             get { return _selectedFile; }
             set { _selectedFile = value; NotifyPropertyChanged("SelectedFile"); }
@@ -68,13 +100,49 @@ namespace Placeless.App.Windows
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            var values = _metadataStore.AllAttributeValues("Year Created");
-            RootValues.Clear();
-            foreach (var value in values)
+
+        }
+
+        private void LvPhotos_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var thumbnail = lvPhotos.SelectedItem as Thumbnail;
+
+            if (thumbnail != null)
             {
-                RootValues.Add(value);
+                var stream = _metadataStore.GetFileStream(thumbnail.Fileid);
+                var image = BitmapFrame.Create(stream,
+                                                    BitmapCreateOptions.PreservePixelFormat,
+                                                    BitmapCacheOption.OnLoad);
+
+                imgPreview.Source = image;
+                border.Reset();
+
+                txtMetadata.Text = string.Join("\r\n\r\n", _metadataStore.GetMetadata(thumbnail.Fileid));
             }
         }
 
+        private void btnExportAttribute_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                var attributeValue = tvAttributeValues.SelectedItem as AttributeValue;
+                var files = _metadataStore.FilesForAttributeValue(attributeValue.Id);
+
+                foreach(var file in files)
+                {
+                    var stream = _metadataStore.GetFileStream(file.Id);
+                    var path = System.IO.Path.Combine(dialog.FileName, file.Title + "_" + file.Id + file.Extension);
+                    using (var fileStream = System.IO.File.OpenWrite(path))
+                    {
+                        stream.CopyTo(fileStream);
+                        fileStream.Flush();
+                    }
+                }
+            }
+
+            
+        }
     }
 }
