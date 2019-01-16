@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Placeless.BlobStore.FileSystem;
 using Placeless.Configuration.AspDotNet;
 using Placeless.Generator;
 using Placeless.Generator.Windows;
@@ -49,7 +50,8 @@ namespace Placeless.Console
 
             
             var config = new AspDotNetConfiguration(configuration);
-            var store = new SqlMetadataStore(config, interaction);
+            var blobStore = new FileSystemBlobStore(config);
+            var store = new SqlMetadataStore(config, interaction, blobStore);
             var source = new FlickrSource(store, config, interaction);
 
             ////var generator = new Generator.Generator(store);

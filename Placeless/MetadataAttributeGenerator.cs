@@ -7,21 +7,15 @@ namespace Placeless
 {
     public abstract class MetadataAttributeGenerator : AttributeGenerator
     {
-        public override string GenerateAttribute(File file)
+        public override string[] GenerateAttribute(File file)
         {
-            var values = file.Metadata.Select(DeriveFromMetadata).Distinct();
-            if (values.Count() == 1)
-            {
-                return values.First();
-            }
-            else
-            {
-                // TODO
-                return values.Min();
-            }
+            var values = file.Metadata.Select(DeriveFromMetadata)
+                .SelectMany(s => s.ToArray())
+                .Distinct();
+            return values.ToArray();
         }
 
-        public abstract string DeriveFromMetadata(string metadata);
+        public abstract string[] DeriveFromMetadata(string metadata);
 
     }
 }

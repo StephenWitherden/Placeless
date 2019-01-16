@@ -15,7 +15,7 @@ namespace Placeless.Source.Flickr
     public class FlickrSource : ISource
     {
         public static string TOKEN_PATH = "Flickr:Token";
-        public static string ENABLED_PATH = "Flickr:Enabled";
+        public static string SECRET_PATH = "Flickr:Secret";
 
         const string API_KEY = "c8cd6dd8f93f95b681a5e1ea321b6c5f";
         const string API_SECRET = "88ee851e6d54b867";
@@ -39,9 +39,14 @@ namespace Placeless.Source.Flickr
             _configuration = configuration;
             _userInteraction = userInteraction;
             _flickr = new FlickrNet.Flickr(API_KEY, API_SECRET);
-
+            _flickr.InstanceCacheDisabled = true;
             var token = _configuration.GetValue(TOKEN_PATH);
-            if (string.IsNullOrWhiteSpace(token))
+            var secret = _configuration.GetValue(SECRET_PATH);
+
+            token = "";
+            secret = "";
+
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(secret))
             {
                 var requestToken = _flickr.OAuthGetRequestToken("oob");
                 string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Read);
@@ -50,9 +55,12 @@ namespace Placeless.Source.Flickr
 
                 var accessToken = _flickr.OAuthGetAccessToken(requestToken, approvalCode);
                 token = accessToken.Token;
+                secret = accessToken.TokenSecret;
                 _configuration.SetValue(TOKEN_PATH, token);
+                _configuration.SetValue(SECRET_PATH, secret);
             }
             _flickr.OAuthAccessToken = token;
+            _flickr.OAuthAccessTokenSecret = secret;
 
         }
 
@@ -126,6 +134,7 @@ namespace Placeless.Source.Flickr
                             {
                                 Name = photo.Title,
                                 Path = path + photo.PhotoId,
+                                Extension = System.IO.Path.GetExtension(url),
                                 Url = url
                             };
                     }

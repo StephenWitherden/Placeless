@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Placeless.BlobStore.FileSystem\Placeless.BlobStore.FileSystem.csproj" />
     <ProjectReference Include="..\Placeless.Configuration.AspDotNet\Placeless.Configuration.AspDotNet.csproj" />
     <ProjectReference Include="..\Placeless.Generator\Placeless.Generator.csproj" />
     <ProjectReference Include="..\Placeless.MetadataStore.Sql\Placeless.MetadataStore.Sql.csproj" />

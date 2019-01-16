@@ -5,10 +5,8 @@ using System.Threading.Tasks;
 
 namespace Placeless
 {
-    public interface IProgressReporter
+    public interface ICollector : IProgressReporter
     {
-        Task DoWork();
-
-        IEnumerable<ProgressReport> GetReports();
+        Task Discover();
     }
 }

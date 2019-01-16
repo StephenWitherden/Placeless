@@ -15,6 +15,8 @@ namespace Placeless
         private readonly IMetadataStore _metadataStore;
         private readonly ISource _source;
         private readonly IUserInteraction _userInteraction;
+        private readonly string _sourceName = "";
+
         private ConcurrentQueue<string> _roots;
         private ConcurrentQueue<DiscoveredFile> _files;
 
@@ -60,9 +62,15 @@ namespace Placeless
         {
             _metadataStore = metadataStore;
             _source = source;
+            _sourceName = source.GetName();
             _roots = new ConcurrentQueue<string>();
             _files = new ConcurrentQueue<DiscoveredFile>();
             _userInteraction = userInteraction;
+        }
+
+        public async Task DoWork()
+        {
+            await Discover();
         }
 
         public async Task Discover()
@@ -93,7 +101,7 @@ namespace Placeless
             {
                 try
                 {
-                    var existingSources = _metadataStore.ExistingSources(_source.GetName(), root);
+                    var existingSources = _metadataStore.ExistingSources(_sourceName, root);
                     return _source.Discover(root, existingSources);
                 }
                 catch (Exception ex)
@@ -113,7 +121,7 @@ namespace Placeless
                 {
                     var stream = _source.GetContents(file.Url);
                     string metadata = await _source.GetMetadata(file.Path);
-                    await _metadataStore.AddDiscoveredFile(stream, file.Name, file.Path, metadata, _source.GetName());
+                    await _metadataStore.AddDiscoveredFile(stream, file.Name, file.Extension, file.Path, metadata, _sourceName);
                 }
                 catch (Exception ex)
                 {
@@ -177,7 +185,7 @@ namespace Placeless
             {
                 try
                 {
-                    return _metadataStore.ExistingSources(_source.GetName(), root);
+                    return _metadataStore.ExistingSources(_sourceName, root);
                 }
                 catch (Exception ex)
                 {
@@ -231,8 +239,8 @@ namespace Placeless
 
         public IEnumerable<ProgressReport> GetReports()
         {
-            yield return new ProgressReport { Category = "Roots", Current = ProcessedRoots, Max = DiscoveredRoots };
-            yield return new ProgressReport { Category = "Files", Current = ProcessedFiles, Max = DiscoveredFiles };
+            yield return new ProgressReport { Category = $"{_sourceName} Roots", Current = ProcessedRoots, Max = DiscoveredRoots };
+            yield return new ProgressReport { Category = $"{_sourceName} Files", Current = ProcessedFiles, Max = DiscoveredFiles };
         }
     }
 }

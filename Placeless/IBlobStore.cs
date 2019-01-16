@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Placeless
 {
-    public interface IProgressReporter
+    public interface IBlobStore
     {
-        Task DoWork();
-
-        IEnumerable<ProgressReport> GetReports();
+        Stream Get(int id);
+        Task PutAsync(Stream contents, int id);
     }
 }

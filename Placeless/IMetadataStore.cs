@@ -9,7 +9,7 @@ namespace Placeless
 {
     public interface IMetadataStore
     {
-        Task AddDiscoveredFile(Stream fileStream, string Title, string originalLocation, string metadata, string sourceName);
+        Task AddDiscoveredFile(Stream fileStream, string Title, string extension, string originalLocation, string metadata, string sourceName);
         void RefreshMetadata();
         HashSet<string> ExistingSources(string sourceName, string startswith);
         Task UpdateMetadataForSource(string existingSource, string metadata);
@@ -23,5 +23,8 @@ namespace Placeless
         Task AddVersion(int id, string versionTypeName, string thumbnailStream);
         IList<Thumbnail> ThumbnailsForAttributeValue(string attributeName, string attributeValue);
         IList<Thumbnail> ThumbnailsForAttributeValue(int id);
+        IList<Placeless.File> FilesForAttributeValue(int id);
+        IEnumerable<string> AllAttributes();
+        IEnumerable<string> GetMetadata(int id);
     }
 }

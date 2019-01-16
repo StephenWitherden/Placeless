@@ -1,4 +1,5 @@
-﻿using Placeless.MetadataStore.Sql;
+﻿using Placeless.BlobStore.FileSystem;
+using Placeless.MetadataStore.Sql;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -122,17 +123,23 @@ namespace Placeless.App.Windows
 
         private void btnNewDatabase_Click(object sender, RoutedEventArgs e)
         {
-            var createDatabaseForm = new CreateDatabase();
+            string connectionString = getConnectionString();
+
+            string rootPath = SqlMetadataStore.GetSqlPath(connectionString);
+
+
+            var createDatabaseForm = new CreateDatabase(rootPath);
+
+
             if (createDatabaseForm.ShowDialog().GetValueOrDefault())
             {
-                string connectionString = getConnectionString();
                 SqlMetadataStore.CreateDatabase(connectionString,
                     createDatabaseForm.DatabaseName,
                     createDatabaseForm.DatabaseFile,
-                    createDatabaseForm.LogFile,
-                    createDatabaseForm.FileFolder
+                    createDatabaseForm.LogFile
                     );
-            }
+                _config.SetValue(FileSystemBlobStore.BLOB_ROOT_PATH, System.IO.Path.Combine(rootPath, createDatabaseForm.DatabaseName + "_Files"));
+           }
         }
 
         private void btnOK_Click(object sender, RoutedEventArgs e)
