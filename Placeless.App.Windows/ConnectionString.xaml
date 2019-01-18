@@ -5,9 +5,21 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Placeless.App.Windows"
         mc:Ignorable="d"
-        Title="ConnectionString" Height="312.5" Width="300" Loaded="Window_Loaded">
+        Title="ConnectionString" Height="346.967" Width="300" Loaded="Window_Loaded">
     <DockPanel>
         <StackPanel DockPanel.Dock="Top">
+            <GroupBox Header="File Storage">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*">
+                        </ColumnDefinition>
+                        <ColumnDefinition Width="20">
+                        </ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Grid.Column="0" x:Name="txtFileStorage"></TextBox>
+                    <Button Grid.Column="1" x:Name="btnFileStorage" Click="BtnFileStorage_Click">...</Button>
+                </Grid>
+            </GroupBox>
             <GroupBox Header="Server Name">
                 <TextBox x:Name="txtServerName">
 

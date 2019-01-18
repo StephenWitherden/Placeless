@@ -12,6 +12,12 @@ namespace Placeless.App.Windows
     {
         public SettingsBasedConfig()
         {
+            if (Settings.Default.CallUpgrade)
+            {
+                Settings.Default.Upgrade();
+                Settings.Default.CallUpgrade = false;
+                Settings.Default.Save();
+            }
         }
 
         public string GetValue(string path)

@@ -67,10 +67,30 @@ namespace Placeless.Source.Flickr
         public IEnumerable<string> GetRoots()
         {
             yield return "/"; // for photos not in a set
-            foreach (var root in _flickr.PhotosetsGetList().Select(s => s.PhotosetId + "/"))
+
+            int page = 1;
+            int maxPages = 1;
+
+            while (page <= maxPages)
             {
-                yield return root;
+                // existing sources gives us a list of photoset ids
+                PhotosetCollection photosets;
+                try
+                {
+                    photosets = _flickr.PhotosetsGetList();
+                    maxPages = photosets.Pages;
+                    page++;
+                }
+                catch
+                {
+                    photosets = new PhotosetCollection();
+                }
+                foreach (var root in photosets.Select(s => s.PhotosetId + "/"))
+                {
+                    yield return root;
+                }
             }
+
         }
 
         public Stream GetContents(string url)
