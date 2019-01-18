@@ -1,4 +1,5 @@
-﻿using Placeless.BlobStore.FileSystem;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using Placeless.BlobStore.FileSystem;
 using Placeless.MetadataStore.Sql;
 using System;
 using System.Collections.Generic;
@@ -41,6 +42,8 @@ namespace Placeless.App.Windows
             txtServerName.Text = builder.DataSource;
             cboAuthenticationMethod.Text = builder.IntegratedSecurity ?
                  "Windows Authentication" : "SQL Server Authentication";
+
+            txtFileStorage.Text = _config.GetValue(FileSystemBlobStore.BLOB_ROOT_PATH);
 
             EnableDisable();
         }
@@ -145,8 +148,19 @@ namespace Placeless.App.Windows
         private void btnOK_Click(object sender, RoutedEventArgs e)
         {
             _config.SetValue(SqlMetadataStore.CONNECTION_STRING_SETTING, getConnectionString());
+            _config.SetValue(FileSystemBlobStore.BLOB_ROOT_PATH, txtFileStorage.Text);
 
             Close();
+        }
+
+        private void BtnFileStorage_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                txtFileStorage.Text = dialog.FileName;
+            }
         }
     }
 }
