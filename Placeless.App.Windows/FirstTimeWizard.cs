@@ -1,4 +1,5 @@
 ﻿using MartinCostello.SqlLocalDb;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.WindowsAPICodePack.Dialogs;
 using Placeless.BlobStore.FileSystem;
 using Placeless.MetadataStore.Sql;
@@ -86,7 +87,7 @@ namespace Placeless.App.Windows
         {
             this.Invoke((MethodInvoker) delegate
             {
-                txtCreateDatabaseOutput.Text += "\r\n" + status;
+                txtCreateDatabaseOutput.Text += status + "\r\n";
                 pbCreateDatabase.Value = progress;
             });
         }
@@ -100,8 +101,8 @@ namespace Placeless.App.Windows
                {
                    using (var localDB = new SqlLocalDbApi())
                    {
-                       ReportStatus("Searching for Localdb instace", 1);
-                       ReportStatus("Checking defaule Instance", 2);
+                       ReportStatus("Searching for Localdb instance", 1);
+                       ReportStatus("Checking default Instance", 2);
 
                        var connected = false;
                        string instance = localDB.DefaultInstanceName;
@@ -165,9 +166,23 @@ namespace Placeless.App.Windows
 
                        SqlMetadataStore.CreateDatabase(builder.ConnectionString, databaseName, mdf, ldf);
 
-                       ReportStatus($"Database Created", 90);
-
                        builder.InitialCatalog = databaseName;
+
+                       ReportStatus($"Database Created, migrating", 80);
+
+                       var _dbContextOptions = SqlServerDbContextOptionsExtensions.UseSqlServer(
+                           new DbContextOptionsBuilder(),
+                           builder.ConnectionString,
+                           options => options.CommandTimeout(120)
+                           ).Options;
+
+                       using (var dbContext = new ApplicationDbContext(_dbContextOptions))
+                       {
+                           dbContext.Database.Migrate();
+                       }
+
+                       ReportStatus($"Migrations executed, updating config", 90);
+
                        _config.SetValue(SqlMetadataStore.CONNECTION_STRING_SETTING, builder.ConnectionString);
                        _config.SetValue(FileSystemBlobStore.BLOB_ROOT_PATH, System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}_Files"));
 
@@ -183,8 +198,8 @@ namespace Placeless.App.Windows
                {
                    this.Invoke((MethodInvoker)delegate
                    {
-                       txtCreateDatabaseOutput.Text += ex.Message;
-                       txtCreateDatabaseOutput.Text += ex.StackTrace;
+                       txtCreateDatabaseOutput.Text += ex.Message + "\r\n";
+                       txtCreateDatabaseOutput.Text += ex.StackTrace + "\r\n";
                    });
                }
            }, TaskCreationOptions.LongRunning);

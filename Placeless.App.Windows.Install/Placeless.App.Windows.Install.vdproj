@@ -9387,15 +9387,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Placeless"
-        "ProductCode" = "8:{191919FE-120A-440D-B577-A05973DD25EC}"
-        "PackageCode" = "8:{06089886-B0A8-411E-8E8D-956C86CD7EE7}"
+        "ProductCode" = "8:{EE378CEE-11A8-49B1-BB71-9C9B83CC1AAC}"
+        "PackageCode" = "8:{B3D90E82-2D30-401E-B5F6-9F2DAAB8D92C}"
         "UpgradeCode" = "8:{BD44BD34-959A-48E2-9E4D-9E45E391E704}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:TRUE"
-        "ProductVersion" = "8:0.4.20"
+        "ProductVersion" = "8:0.4.21"
         "Manufacturer" = "8:Placeless"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -9923,7 +9923,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_5AFC6433AE204F2FB4DC2C2C3C26FE98"
             {
-            "SourcePath" = "8:..\\Placeless.App.Windows\\obj\\Release\\Placeless.App.Windows.exe"
+            "SourcePath" = "8:..\\Placeless.App.Windows\\obj\\Debug\\Placeless.App.Windows.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_A8AB9F446A3C4883BBD58E0FD5585831"
