@@ -38,10 +38,11 @@
             this.label2 = new System.Windows.Forms.Label();
             this.txtDatabasePath = new System.Windows.Forms.TextBox();
             this.wizDatabaseCreate = new AeroWizard.WizardPage();
+            this.pbCreateDatabase = new System.Windows.Forms.ProgressBar();
+            this.txtCreateDatabaseOutput = new System.Windows.Forms.TextBox();
             this.wizSelectFolders = new AeroWizard.WizardPage();
             this.txtFolders = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
-            this.txtCreateDatabaseOutput = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.wizardControl1)).BeginInit();
             this.wizStart.SuspendLayout();
             this.wizDatabaseValidate.SuspendLayout();
@@ -135,12 +136,30 @@
             // 
             // wizDatabaseCreate
             // 
+            this.wizDatabaseCreate.AllowNext = false;
+            this.wizDatabaseCreate.Controls.Add(this.pbCreateDatabase);
             this.wizDatabaseCreate.Controls.Add(this.txtCreateDatabaseOutput);
             this.wizDatabaseCreate.Name = "wizDatabaseCreate";
+            this.wizDatabaseCreate.ShowNext = false;
             this.wizDatabaseCreate.Size = new System.Drawing.Size(718, 337);
             this.wizDatabaseCreate.TabIndex = 3;
             this.wizDatabaseCreate.Text = "Creating Database";
             this.wizDatabaseCreate.Initialize += new System.EventHandler<AeroWizard.WizardPageInitEventArgs>(this.wizDatabaseCreate_Initialize);
+            // 
+            // pbCreateDatabase
+            // 
+            this.pbCreateDatabase.Location = new System.Drawing.Point(4, 295);
+            this.pbCreateDatabase.Name = "pbCreateDatabase";
+            this.pbCreateDatabase.Size = new System.Drawing.Size(711, 23);
+            this.pbCreateDatabase.TabIndex = 1;
+            // 
+            // txtCreateDatabaseOutput
+            // 
+            this.txtCreateDatabaseOutput.Location = new System.Drawing.Point(4, 4);
+            this.txtCreateDatabaseOutput.Multiline = true;
+            this.txtCreateDatabaseOutput.Name = "txtCreateDatabaseOutput";
+            this.txtCreateDatabaseOutput.Size = new System.Drawing.Size(711, 284);
+            this.txtCreateDatabaseOutput.TabIndex = 0;
             // 
             // wizSelectFolders
             // 
@@ -170,14 +189,6 @@
             this.label3.TabIndex = 0;
             this.label3.Text = "If you want to read photos off your local computer or network share, please enter" +
     " the paths in the text box below. If not, you can just leave this blank.";
-            // 
-            // txtCreateDatabaseOutput
-            // 
-            this.txtCreateDatabaseOutput.Location = new System.Drawing.Point(4, 4);
-            this.txtCreateDatabaseOutput.Multiline = true;
-            this.txtCreateDatabaseOutput.Name = "txtCreateDatabaseOutput";
-            this.txtCreateDatabaseOutput.Size = new System.Drawing.Size(711, 330);
-            this.txtCreateDatabaseOutput.TabIndex = 0;
             // 
             // FirstTimeWizard
             // 
@@ -216,5 +227,6 @@
         private System.Windows.Forms.Button btnSelect;
         private System.Windows.Forms.Label lblError;
         private System.Windows.Forms.TextBox txtCreateDatabaseOutput;
+        private System.Windows.Forms.ProgressBar pbCreateDatabase;
     }
 }

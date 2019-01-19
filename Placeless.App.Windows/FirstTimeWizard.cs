@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Placeless.App.Windows
@@ -47,6 +49,7 @@ namespace Placeless.App.Windows
                     lblError.Visible = true;
 
                 }
+
                 else if (string.IsNullOrWhiteSpace(localDB.GetDefaultInstance().Name))
                 {
                     lblError.Text = "Could not determine default instance name.";
@@ -79,53 +82,113 @@ namespace Placeless.App.Windows
 
         }
 
+        private void ReportStatus(string status, int progress)
+        {
+            this.Invoke((MethodInvoker) delegate
+            {
+                txtCreateDatabaseOutput.Text += "\r\n" + status;
+                pbCreateDatabase.Value = progress;
+            });
+        }
+
 
         private void wizDatabaseCreate_Initialize(object sender, AeroWizard.WizardPageInitEventArgs e)
         {
-            try
-            {
-                using (var localDB = new SqlLocalDbApi())
-                {
-                    string databaseName = "Placeless";
+           var createDatabaseTask = new Task(() =>
+           {
+               try
+               {
+                   using (var localDB = new SqlLocalDbApi())
+                   {
+                       ReportStatus("Searching for Localdb instace", 1);
+                       ReportStatus("Checking defaule Instance", 2);
 
-                    string instance = localDB.GetDefaultInstance().Name;
-                    SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
-                    builder.DataSource = $"(LocalDb)\\{instance}";
-                    builder.InitialCatalog = "Master";
-                    builder.IntegratedSecurity = true;
+                       var connected = false;
+                       string instance = localDB.DefaultInstanceName;
+                       List<string> instanceNames = new List<string>(localDB.GetInstanceNames());
+                       instanceNames = instanceNames.Where(n => n != instance).ToList(); // only non-default instances
 
-                    int i = 0;
-                    var databaseNames = getDatabaseList(builder.ConnectionString);
+                       SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
 
-                    string mdf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.mdf");
-                    string ldf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.ldf");
+                       int iInstance = 0;
+                       while (!connected)
+                       {
+                           builder.DataSource = $"(LocalDb)\\{instance}";
+                           builder.InitialCatalog = "Master";
+                           builder.IntegratedSecurity = true;
+                           ReportStatus($"Connecting to {instance}", 2);
 
-                    while (
-                        System.IO.File.Exists(mdf) || 
-                        System.IO.File.Exists(ldf) || 
-                        databaseNames.Contains(databaseName)
-                        )
-                    {
-                        i++;
-                        databaseName = $"Placeless{i:D2}";
-                        mdf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.mdf");
-                        ldf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.ldf");
-                    }
+                           var con = new SqlConnection(builder.ConnectionString);
+                           try
+                           {
+                               con.Open();
+                               connected = true;
+                           }
+                           catch
+                           {
+                               connected = false;
+                               if (iInstance >= instanceNames.Count)
+                               {
+                                   ReportStatus("Error: No LocalDb database instances could be connected to.", 0);
+                                   return;
+                               }
+                               instance = instanceNames[iInstance];
+                               iInstance++;
+                           }
+                       }
 
+                       ReportStatus($"Successfully connected to {instance}", 20);
 
-                    SqlMetadataStore.CreateDatabase(builder.ConnectionString, databaseName, mdf, ldf);
+                       string databaseName = "Placeless";
+                       int i = 0;
+                       var databaseNames = getDatabaseList(builder.ConnectionString);
 
-                    builder.InitialCatalog = databaseName;
-                    _config.SetValue(SqlMetadataStore.CONNECTION_STRING_SETTING, builder.ConnectionString);
-                    _config.SetValue(FileSystemBlobStore.BLOB_ROOT_PATH, System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}_Files"));
-                    wizardControl1.NextPage();
-                }
-            }
-            catch(Exception ex)
-            {
-                txtCreateDatabaseOutput.Text += ex.Message;
-                txtCreateDatabaseOutput.Text += ex.StackTrace;
-            }
+                       string mdf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.mdf");
+                       string ldf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.ldf");
+
+                       ReportStatus($"Selecting a unique database name", 30);
+
+                       while (
+                           System.IO.File.Exists(mdf) ||
+                           System.IO.File.Exists(ldf) ||
+                           databaseNames.Contains(databaseName)
+                           )
+                       {
+                           i++;
+                           databaseName = $"Placeless{i:D2}";
+                           mdf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.mdf");
+                           ldf = System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}.ldf");
+                       }
+                       ReportStatus($"Creating database {databaseName}.", 35);
+                       ReportStatus($"Data File: {mdf}", 35);
+                       ReportStatus($"Log File: {ldf}", 35);
+
+                       SqlMetadataStore.CreateDatabase(builder.ConnectionString, databaseName, mdf, ldf);
+
+                       ReportStatus($"Database Created", 90);
+
+                       builder.InitialCatalog = databaseName;
+                       _config.SetValue(SqlMetadataStore.CONNECTION_STRING_SETTING, builder.ConnectionString);
+                       _config.SetValue(FileSystemBlobStore.BLOB_ROOT_PATH, System.IO.Path.Combine(txtDatabasePath.Text, $"{databaseName}_Files"));
+
+                       ReportStatus($"Configuration Updated", 100);
+
+                       this.Invoke((MethodInvoker)delegate
+                       {
+                           wizardControl1.NextPage();
+                       });
+                   }
+               }
+               catch (Exception ex)
+               {
+                   this.Invoke((MethodInvoker)delegate
+                   {
+                       txtCreateDatabaseOutput.Text += ex.Message;
+                       txtCreateDatabaseOutput.Text += ex.StackTrace;
+                   });
+               }
+           }, TaskCreationOptions.LongRunning);
+           createDatabaseTask.Start();
         }
     }
 }
