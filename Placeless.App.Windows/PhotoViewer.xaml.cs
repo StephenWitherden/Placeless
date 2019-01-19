@@ -39,7 +39,14 @@ namespace Placeless.App.Windows
             {
                 _selectedAttribute = value;
                 var values = _metadataStore.AllAttributeValues(_selectedAttribute);
-                RootValues.Clear();
+                try
+                {
+                    RootValues.Clear();
+                }
+                catch
+                {
+
+                }
                 foreach (var v in values)
                 {
                     RootValues.Add(v);

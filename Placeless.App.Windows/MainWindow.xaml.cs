@@ -58,6 +58,8 @@ namespace Placeless.App.Windows
 
             _serviceProvider = _servicecollection.BuildServiceProvider();
 
+            Application.Current.DispatcherUnhandledException += Current_DispatcherUnhandledException;
+
             InitializeComponent();
 
             if (string.IsNullOrWhiteSpace(_config.GetValue(SqlMetadataStore.CONNECTION_STRING_SETTING)))
@@ -76,6 +78,14 @@ namespace Placeless.App.Windows
                 new ProgressReportGroup { Category = progressCategory5, ProgressBar = progressBar5, ProgressBarText = progressBarText5 },
             };
         }
+
+        private void Current_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            string message = e.Exception.Message + "\r\n\r\n" + "Press [Yes] to ignore error and continue, press [No] to quit.";
+            var result = MessageBox.Show(message, "Error encountered. Continue?", MessageBoxButton.YesNo, MessageBoxImage.Error);
+            e.Handled = result == MessageBoxResult.Yes; // continue
+        }
+
 
         public string InputPrompt(string prompt)
         {
