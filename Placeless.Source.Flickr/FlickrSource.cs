@@ -49,7 +49,7 @@ namespace Placeless.Source.Flickr
             if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(secret))
             {
                 var requestToken = _flickr.OAuthGetRequestToken("oob");
-                string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Read);
+                string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Write);
                 _userInteraction.OpenWebPage(url);
                 string approvalCode = _userInteraction.InputPrompt("Please approve access to your Flickr account and enter the key here:");
 
@@ -93,14 +93,38 @@ namespace Placeless.Source.Flickr
 
         }
 
-        public Stream GetContents(string url)
+        public Stream GetContents(DiscoveredFile file)
         {
-            using (WebClient wc = new WebClient())
+            string photoId = file.Path.Split('/')[1];
+
+            var perms = _flickr.PhotosGetPerms(photoId);
+
+            if (!perms.IsPublic && file.Url.Contains("video_download"))
             {
-                var data = wc.DownloadData(url);
-                var stream = new MemoryStream(data);
-                return stream;
+                _flickr.PhotosSetPerms(photoId, true, perms.IsFriend, perms.IsFamily, perms.PermissionComment, perms.PermissionAddMeta);
             }
+
+            try
+            {
+                using (WebClient wc = new WebClient())
+                {
+                    var stream = new MemoryStream(wc.DownloadData(file.Url));
+                    return stream;
+                }
+            }
+            catch(Exception ex)
+            {
+                _userInteraction.ReportError(ex.Message);
+                throw;
+            }
+            finally
+            {
+                if (!perms.IsPublic && file.Url.Contains("video_download"))
+                {
+                    _flickr.PhotosSetPerms(photoId, perms.IsPublic, perms.IsFriend, perms.IsFamily, perms.PermissionComment, perms.PermissionAddMeta);
+                }
+            }
+
         }
 
         public IEnumerable<DiscoveredFile> Discover(string path, HashSet<string> existingSources)
@@ -148,13 +172,36 @@ namespace Placeless.Source.Flickr
                         {
                             url = photo.MediumUrl;
                         }
+                        string extension = System.IO.Path.GetExtension(url);
+                        if (photo.Media == "video")
+                        {
+                            url = $"http://www.flickr.com/video_download.gne?id={photo.PhotoId}";
+
+                            try
+                            {
+                                if (!photo.IsPublic)
+                                {
+                                    _flickr.PhotosSetPerms(photo.PhotoId, true, photo.IsFriend, photo.IsFamily, PermissionComment.Nobody, PermissionAddMeta.Owner);
+                                }
+                                string fileName = GetHeaderFileName(url);
+                                extension = System.IO.Path.GetExtension(fileName);
+                                if (!photo.IsPublic)
+                                {
+                                    _flickr.PhotosSetPerms(photo.PhotoId, photo.IsPublic, photo.IsFriend, photo.IsFamily, PermissionComment.Nobody, PermissionAddMeta.Owner);
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+
+                            }
+                        }
 
                         yield return
                             new DiscoveredFile
                             {
                                 Name = photo.Title,
                                 Path = path + photo.PhotoId,
-                                Extension = System.IO.Path.GetExtension(url),
+                                Extension = extension,
                                 Url = url
                             };
                     }
@@ -162,6 +209,20 @@ namespace Placeless.Source.Flickr
             }
         }
 
+        private string GetHeaderFileName(string url)
+        {
+            var r = HttpWebRequest.Create(url);
+            r.Method = "HEAD";
+            try
+            {
+                string result = r.GetResponse().Headers["Content-Disposition"];
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return "";
+            }
+        }
 
         public async Task<string> GetMetadata(string path)
         {

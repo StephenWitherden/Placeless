@@ -72,12 +72,6 @@ namespace Placeless.MetadataStore.Sql
             using (var dbContext = new ApplicationDbContext(_dbContextOptions))
             {
 
-                var matchingFileSource = await dbContext.FileSources.Where(s => s.SourceUri == originalLocation).AnyAsync();
-                if (matchingFileSource)
-                {
-                    return;
-                }
-
                 var source = await dbContext.Sources.Where(s => s.Name.ToLower() == sourceName.ToLower()).FirstOrDefaultAsync();
                 if (source == null)
                 {

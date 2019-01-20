@@ -119,7 +119,7 @@ namespace Placeless
             {
                 try
                 {
-                    var stream = _source.GetContents(file.Url);
+                    var stream = _source.GetContents(file);
                     string metadata = await _source.GetMetadata(file.Path);
                     await _metadataStore.AddDiscoveredFile(stream, file.Name, file.Extension, file.Path, metadata, _sourceName);
                 }
