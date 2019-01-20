@@ -135,9 +135,9 @@ namespace Placeless.Source.Windows
             return unprocessedFiles;
         }
 
-        public Stream GetContents(string path)
+        public Stream GetContents(DiscoveredFile file)
         {
-            var stream = System.IO.File.OpenRead(path);
+            var stream = System.IO.File.OpenRead(file.Url);
             return stream;
         }
 

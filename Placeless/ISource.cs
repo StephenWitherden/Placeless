@@ -11,7 +11,7 @@ namespace Placeless
         IEnumerable<string> GetRoots();
         IEnumerable<DiscoveredFile> Discover(string path, HashSet<string> existingSources);
         Task<string> GetMetadata(string path);
-        Stream GetContents(string path);
+        Stream GetContents(DiscoveredFile file);
         string GetName();
     }
 }
