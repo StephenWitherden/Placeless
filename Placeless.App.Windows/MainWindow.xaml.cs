@@ -280,7 +280,16 @@ namespace Placeless.App.Windows
         private void btnCollectFolders_Click(object sender, RoutedEventArgs e)
         {
             var collector = _serviceProvider.GetService<Collector<WindowsSource>>();
-            watch(collector);
+
+            var watchTask = watch(collector);
+
+            watchTask
+                .ContinueWith((t) =>
+                {
+                    refreshMetadata();
+                });
+
+            watchTask.Start();
         }
 
         private void btnViewGallery_Click(object sender, RoutedEventArgs e)
