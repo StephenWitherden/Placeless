@@ -8,5 +8,7 @@ namespace Placeless
     {
         IEnumerable<string> GetValues(string path);
         string GetValue(string path);
+        void SetValues(string path, IEnumerable<string> values);
+        void SetValue(string path, string value);
     }
 }

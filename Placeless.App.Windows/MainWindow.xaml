@@ -1,0 +1,120 @@
+﻿<Window x:Class="Placeless.App.Windows.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Placeless.App.Windows"
+        mc:Ignorable="d"
+        Title="Placeless" Height="350" Width="525">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="100*"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+        <Ribbon  Grid.Row="0" Margin="0,-22,0,0">
+            <Ribbon.ApplicationMenu>
+                <RibbonApplicationMenu>
+
+                    <RibbonApplicationMenu.AuxiliaryPaneContent>
+                        <RibbonGallery ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <RibbonGalleryCategory MaxColumnCount="1">
+                                <RibbonGalleryItem x:Name="GalleryItem1" Content="Application menu content" 
+                                MouseOverBackground="Transparent"
+                                MouseOverBorderBrush="Transparent"
+                                CheckedBackground="Transparent"
+                                CheckedBorderBrush="Transparent"
+                                               />
+                            </RibbonGalleryCategory>
+                        </RibbonGallery>
+                    </RibbonApplicationMenu.AuxiliaryPaneContent>
+
+                </RibbonApplicationMenu>
+            </Ribbon.ApplicationMenu>
+            <RibbonTab x:Name="rbnTabActions" Header="Actions">
+                <RibbonGroup x:Name="rbnView" Header="View">
+                    <RibbonButton x:Name="btnViewGallery" Label="Gallery" LargeImageSource="Images/ImageStack_32x.png" Click="btnViewGallery_Click"/>
+                </RibbonGroup>
+                <RibbonGroup x:Name="rbnCollect" Header="Collect Files from">
+                    <RibbonButton x:Name="btnCollectFlickr" Label="Flickr" LargeImageSource="Images/Download_32x.png" Click="btnCollectFlickr_Click"/>
+                    <RibbonButton x:Name="btnCollectWindows" Label="Folders" LargeImageSource="Images/Download_32x.png" Click="btnCollectFolders_Click"/>
+                </RibbonGroup>
+                <RibbonGroup x:Name="rbnGrRefresh" Header="Files &amp; Metadata">
+                    <RibbonButton x:Name="btnGenerateThumbnails" Label="Generate Thumbnails" LargeImageSource="Images/Image_32x.png" Click="btnGenerateThumbnails_Click" />
+                    <RibbonButton x:Name="btnDeriveAttributes" Label="Derive Attributes" LargeImageSource="Images/DeriveAttributes_32x.png" Click="btnDeriveAttributes_Click"/>
+                </RibbonGroup>
+            </RibbonTab>
+            <RibbonTab x:Name="rbnTabSettings" Header="Settings">
+                <RibbonGroup x:Name="rbnGrDatabase" Header="Storage">
+                    <RibbonButton x:Name="btnChooseDatabase" Label="Set Connection" LargeImageSource="Images/Database_32x.png" Click="btnChooseDatabase_Click" />
+                </RibbonGroup>
+                <RibbonGroup x:Name="rbnGrFileSystem" Header="Sources">
+                    <RibbonButton x:Name="btnConfigureFileSystem" Label="File System" LargeImageSource="Images/Folder_32x.png" Click="btnConfigureFileSystem_Click" />
+                </RibbonGroup>
+            </RibbonTab>
+        </Ribbon>
+        <!-- add your content here-->
+        <Frame  Grid.Row="1" x:Name="mainFrame">
+                            
+        </Frame>
+        <StatusBar x:Name="statusBar" Grid.Row="2" VerticalAlignment="Bottom">
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory0" Visibility="Collapsed"></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar0" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText0" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Separator></Separator>
+            </StatusBarItem>            
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory1" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar1" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText1" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory2" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar2" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText2" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory3" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar3" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText3" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory4" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar4" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText4" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock x:Name="progressCategory5" Visibility="Collapsed" ></TextBlock>
+            </StatusBarItem>
+            <StatusBarItem>
+                <Grid>
+                    <ProgressBar x:Name="progressBar5" Visibility="Collapsed" Width="100"></ProgressBar>
+                    <TextBlock x:Name="progressBarText5" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </StatusBarItem>            
+        </StatusBar>
+    </Grid>
+</Window>

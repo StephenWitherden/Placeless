@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -13,13 +14,16 @@ namespace Placeless.Source.Flickr
 {
     public class FlickrSource : ISource
     {
+        public static string TOKEN_PATH = "Flickr:Token";
+        public static string SECRET_PATH = "Flickr:Secret";
+
+        const string API_KEY = "c8cd6dd8f93f95b681a5e1ea321b6c5f";
+        const string API_SECRET = "88ee851e6d54b867";
+
         private readonly IMetadataStore _metadataStore;
         private readonly IPlacelessconfig _configuration;
-        private HashSet<string> _existingSources;
         private readonly FlickrNet.Flickr _flickr;
         private readonly IUserInteraction _userInteraction;
-        const int MAX_THREADS = 20;
-        SemaphoreSlim maxThread = new SemaphoreSlim(MAX_THREADS);
 
         private class DownloadState
         {
@@ -33,116 +37,197 @@ namespace Placeless.Source.Flickr
         {
             _metadataStore = store;
             _configuration = configuration;
-            _flickr = new FlickrNet.Flickr(_configuration.GetValue("Flickr:ApiKey"), _configuration.GetValue("Flickr:SharedSecret"));
             _userInteraction = userInteraction;
+            _flickr = new FlickrNet.Flickr(API_KEY, API_SECRET);
+            _flickr.InstanceCacheDisabled = true;
+            var token = _configuration.GetValue(TOKEN_PATH);
+            var secret = _configuration.GetValue(SECRET_PATH);
 
-            var requestToken = _flickr.OAuthGetRequestToken("oob");
+            token = "";
+            secret = "";
 
-            string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Read);
-            _userInteraction.OpenWebPage(url);
-            string key = _userInteraction.InputPrompt("Please approve access to your Flickr account and enter the key here:");
-
-            var accessToken = _flickr.OAuthGetAccessToken(requestToken, key);
-            _flickr.OAuthAccessToken = accessToken.Token;
-        }
-
-        public FlickrSource()
-        {
-        }
-
-        public void RefreshMetadata(string path)
-        {
-            _existingSources = _metadataStore.ExistingSources(GetName(), path);
-            foreach (var existingSource in _existingSources)
+            if (string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(secret))
             {
-                string metadata = GetMetadata(existingSource);
-                _metadataStore.UpdateMetadataForSource(existingSource, metadata);
+                var requestToken = _flickr.OAuthGetRequestToken("oob");
+                string url = _flickr.OAuthCalculateAuthorizationUrl(requestToken.Token, AuthLevel.Write);
+                _userInteraction.OpenWebPage(url);
+                string approvalCode = _userInteraction.InputPrompt("Please approve access to your Flickr account and enter the key here:");
+
+                var accessToken = _flickr.OAuthGetAccessToken(requestToken, approvalCode);
+                token = accessToken.Token;
+                secret = accessToken.TokenSecret;
+                _configuration.SetValue(TOKEN_PATH, token);
+                _configuration.SetValue(SECRET_PATH, secret);
             }
+            _flickr.OAuthAccessToken = token;
+            _flickr.OAuthAccessTokenSecret = secret;
+
         }
 
-        public Task Discover()
+        public IEnumerable<string> GetRoots()
         {
-            var done = false;
-            while (!done)
+            yield return "/"; // for photos not in a set
+
+            int page = 1;
+            int maxPages = 1;
+
+            while (page <= maxPages)
             {
+                // existing sources gives us a list of photoset ids
+                PhotosetCollection photosets;
                 try
                 {
-                    var photoSets = _flickr.PhotosetsGetList();
-
-                    foreach (var photoSet in photoSets)
-                    {
-                        _existingSources = _metadataStore.ExistingSources(GetName(), photoSet.PhotosetId + "/");
-                        var photosInSet = _flickr.PhotosetsGetPhotos(photoSet.PhotosetId, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl);
-                        Discover(_existingSources, photosInSet, photoSet.PhotosetId);
-                    }
-                    var photos = _flickr.PhotosGetNotInSet();
-                    _existingSources = _metadataStore.ExistingSources(GetName(), "/");
-                    Discover(_existingSources, photos, "");
-
-                    while(maxThread.CurrentCount < MAX_THREADS)
-                    {
-                        Thread.Sleep(1000);
-                    }
-
-                    done = true;
+                    photosets = _flickr.PhotosetsGetList();
+                    maxPages = photosets.Pages;
+                    page++;
                 }
-                catch (Exception ex)
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine(ex.Message);
-                    done = false;
+                    photosets = new PhotosetCollection();
+                }
+                foreach (var root in photosets.Select(s => s.PhotosetId + "/"))
+                {
+                    yield return root;
                 }
             }
-            return Task.CompletedTask;
+
         }
 
-        private void Discover(HashSet<string> existingSources, PagedPhotoCollection photos, string photoSetId)
+        public Stream GetContents(DiscoveredFile file)
         {
-            foreach (var photo in photos)
+            string photoId = file.Path.Split('/')[1];
+
+            var perms = _flickr.PhotosGetPerms(photoId);
+
+            if (!perms.IsPublic && file.Url.Contains("video_download"))
             {
-                if (!_existingSources.Contains(photoSetId + "/" + photo.PhotoId))
-                {
-                    if (photo.MediaStatus == "failed")
-                    {
-                        continue;
-                    }
-                    string url = photo.OriginalUrl;
-                    if (url == null)
-                    {
-                        url = photo.LargeUrl;
-                    }
-                    if (url == null)
-                    {
-                        url = photo.MediumUrl;
-                    }
-
-                    maxThread.Wait();
-                    ThreadPool.QueueUserWorkItem(DownloadPicture, new DownloadState { PhotoId = photo.PhotoId, PhotosetId = photoSetId, Title = photo.Title, Url = url });
-                }
+                _flickr.PhotosSetPerms(photoId, true, perms.IsFriend, perms.IsFamily, perms.PermissionComment, perms.PermissionAddMeta);
             }
-        }
 
-        private void DownloadPicture(Object stateInfo)
-        {
-            var downloadinfo = stateInfo as DownloadState;
             try
             {
                 using (WebClient wc = new WebClient())
                 {
-                    var data = wc.DownloadData(downloadinfo.Url);
-                    var stream = new MemoryStream(data);
-                    string metadata = GetMetadata(downloadinfo.PhotoId);
-                    _metadataStore.AddDiscoveredFile(stream, downloadinfo.Title, downloadinfo.PhotosetId + "/" + downloadinfo.PhotoId, metadata, GetName());
+                    var stream = new MemoryStream(wc.DownloadData(file.Url));
+                    return stream;
                 }
+            }
+            catch(Exception ex)
+            {
+                _userInteraction.ReportError(ex.Message);
+                throw;
+            }
+            finally
+            {
+                if (!perms.IsPublic && file.Url.Contains("video_download"))
+                {
+                    _flickr.PhotosSetPerms(photoId, perms.IsPublic, perms.IsFriend, perms.IsFamily, perms.PermissionComment, perms.PermissionAddMeta);
+                }
+            }
+
+        }
+
+        public IEnumerable<DiscoveredFile> Discover(string path, HashSet<string> existingSources)
+        {
+            string photosetId = path.Replace("/", "");
+            int page = 1;
+            int maxPages = 1;
+
+            while (page <= maxPages)
+            {
+                // existing sources gives us a list of photoset ids
+                PagedPhotoCollection photos;
+                try
+                {
+                    if (photosetId == "")
+                    {
+                        photos = _flickr.PhotosGetNotInSet(page, 100, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl);
+                    }
+                    else
+                    {
+                        photos = _flickr.PhotosetsGetPhotos(photosetId, PhotoSearchExtras.OriginalUrl | PhotoSearchExtras.Media | PhotoSearchExtras.LargeUrl, page, 100);
+                    }
+                    maxPages = photos.Pages;
+                    page++;
+                }
+                catch
+                {
+                    photos = new PhotoCollection();
+                }
+
+                foreach (var photo in photos)
+                {
+                    if (!existingSources.Contains(path + photo.PhotoId))
+                    {
+                        if (photo.MediaStatus == "failed")
+                        {
+                            continue;
+                        }
+                        string url = photo.OriginalUrl;
+                        if (url == null)
+                        {
+                            url = photo.LargeUrl;
+                        }
+                        if (url == null)
+                        {
+                            url = photo.MediumUrl;
+                        }
+                        string extension = System.IO.Path.GetExtension(url);
+                        if (photo.Media == "video")
+                        {
+                            url = $"http://www.flickr.com/video_download.gne?id={photo.PhotoId}";
+
+                            try
+                            {
+                                if (!photo.IsPublic)
+                                {
+                                    _flickr.PhotosSetPerms(photo.PhotoId, true, photo.IsFriend, photo.IsFamily, PermissionComment.Nobody, PermissionAddMeta.Owner);
+                                }
+                                string fileName = GetHeaderFileName(url);
+                                extension = System.IO.Path.GetExtension(fileName);
+                                if (!photo.IsPublic)
+                                {
+                                    _flickr.PhotosSetPerms(photo.PhotoId, photo.IsPublic, photo.IsFriend, photo.IsFamily, PermissionComment.Nobody, PermissionAddMeta.Owner);
+                                }
+                            }
+                            catch(Exception ex)
+                            {
+
+                            }
+                        }
+
+                        yield return
+                            new DiscoveredFile
+                            {
+                                Name = photo.Title,
+                                Path = path + photo.PhotoId,
+                                Extension = extension,
+                                Url = url
+                            };
+                    }
+                }
+            }
+        }
+
+        private string GetHeaderFileName(string url)
+        {
+            var r = HttpWebRequest.Create(url);
+            r.Method = "HEAD";
+            try
+            {
+                string result = r.GetResponse().Headers["Content-Disposition"];
+                return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(ex.Message);
+                return "";
             }
-            maxThread.Release();
         }
 
-        private string GetMetadata(string photoId)
+        public async Task<string> GetMetadata(string path)
         {
+            string photoId = path.Split('/')[1];
+
             var info = _flickr.PhotosGetInfo(photoId);
             var exif = _flickr.PhotosGetExif(photoId);
             var contexts = _flickr.PhotosGetAllContexts(photoId);
@@ -180,7 +265,7 @@ namespace Placeless.Source.Flickr
                 j.Add(e.TagSpace + "." + e.Tag, e.CleanOrRaw);
             });
 
-            return j.ToString();
+            return await Task.FromResult(j.ToString());
 
         }
 
@@ -189,15 +274,10 @@ namespace Placeless.Source.Flickr
             return name.Replace(' ', '_').Replace('/', '_').Replace('-', '_');
         }
 
-
-        public Task Retrieve()
-        {
-            throw new NotImplementedException();
-        }
-
         public string GetName()
         {
             return "Flickr";
         }
+
     }
 }

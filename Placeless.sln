@@ -17,6 +17,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Placeless.Generator", "Plac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Placeless.Source.Flickr", "Placeless.Source.Flickr\Placeless.Source.Flickr.csproj", "{50FA47A6-A251-4605-B94F-E7CBC3A730FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Placeless.App.Windows", "Placeless.App.Windows\Placeless.App.Windows.csproj", "{DF34D0BA-1199-4C0F-9B6A-BBBD1053E1EF}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Placeless.App.Windows.Install", "Placeless.App.Windows.Install\Placeless.App.Windows.Install.vdproj", "{5564F688-2541-46F0-8D5B-006E2549EC27}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Placeless.BlobStore.FileSystem", "Placeless.BlobStore.FileSystem\Placeless.BlobStore.FileSystem.csproj", "{1EDA51C9-F93E-4048-B7C6-8AF40417DB29}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Placeless.Source.Telegram", "Placeless.Source.Telegram\Placeless.Source.Telegram.csproj", "{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}"
 EndProject
 Global
@@ -53,6 +59,16 @@ Global
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{50FA47A6-A251-4605-B94F-E7CBC3A730FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF34D0BA-1199-4C0F-9B6A-BBBD1053E1EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF34D0BA-1199-4C0F-9B6A-BBBD1053E1EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF34D0BA-1199-4C0F-9B6A-BBBD1053E1EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF34D0BA-1199-4C0F-9B6A-BBBD1053E1EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5564F688-2541-46F0-8D5B-006E2549EC27}.Debug|Any CPU.ActiveCfg = Debug
+		{5564F688-2541-46F0-8D5B-006E2549EC27}.Release|Any CPU.ActiveCfg = Release
+		{1EDA51C9-F93E-4048-B7C6-8AF40417DB29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1EDA51C9-F93E-4048-B7C6-8AF40417DB29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1EDA51C9-F93E-4048-B7C6-8AF40417DB29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1EDA51C9-F93E-4048-B7C6-8AF40417DB29}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD5ED3B4-0BE0-4F87-AB6F-D20EE499D3ED}.Release|Any CPU.ActiveCfg = Release|Any CPU

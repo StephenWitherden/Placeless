@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Placeless.BlobStore.FileSystem;
 using Placeless.Configuration.AspDotNet;
 using Placeless.Generator;
 using Placeless.Generator.Windows;
@@ -12,6 +13,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace Placeless.Console
 {
@@ -19,6 +21,8 @@ namespace Placeless.Console
     {
         static void Main(string[] args)
         {
+            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
+
             var interaction = new ConsoleUserInteraction();
             interaction.ReportStatus("Placeless console app starting.");
 
@@ -32,33 +36,51 @@ namespace Placeless.Console
                 return; // exit app
             }
 
+            string settingsFile = "appsettings.json";
+
+#if DEBUG
+            settingsFile = "appsettings.Development.json";
+#endif
 
             var builder = new ConfigurationBuilder()
                 .SetBasePath(Path.Combine(AppContext.BaseDirectory))
-                .AddJsonFile("appsettings.json", optional: false);
+                .AddJsonFile(settingsFile, optional: false);
 
             var configuration = builder.Build();
 
             
             var config = new AspDotNetConfiguration(configuration);
-            var store = new SqlMetadataStore(config, interaction);
+            var blobStore = new FileSystemBlobStore(config);
+            var store = new SqlMetadataStore(config, interaction, blobStore);
             var source = new FlickrSource(store, config, interaction);
 
             ////var generator = new Generator.Generator(store);
             ////generator.Generate(new CreatedYearAttributeGenerator());
             ////generator.Generate(new MediumThumbnailGenerator());
 
-            source.Discover();
+            var collector = new Collector<FlickrSource>(store, source, interaction);
+
+            var discoveryTask = collector.Discover();
+
+            var rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+            var filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+
+            while (!discoveryTask.Wait(1000))
+            {
+                rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+                filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+
+                System.Console.WriteLine($"Roots: {collector.ProcessedRoots}/{collector.DiscoveredRoots} ({rootPercent}%); Files: {collector.ProcessedFiles}/{collector.DiscoveredFiles} ({filePercent}%)");
+            }
+            rootPercent = collector.DiscoveredRoots == 0 ? 0 : 100 * collector.ProcessedRoots / collector.DiscoveredRoots;
+            filePercent = collector.DiscoveredFiles == 0 ? 0 : 100 * collector.ProcessedFiles / collector.DiscoveredFiles;
+            System.Console.WriteLine($"Roots: {collector.ProcessedRoots}/{collector.DiscoveredRoots} ({rootPercent}%); Files: {collector.ProcessedFiles}/{collector.DiscoveredFiles} ({filePercent}%)");
         }
 
-        public string InputPrompt(string prompt)
-        {
-            throw new NotImplementedException();
-        }
 
-        public void OpenWebPage(string url)
+        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
         {
-            throw new NotImplementedException();
+            System.Console.WriteLine(e.ExceptionObject.ToString());
         }
     }
 }

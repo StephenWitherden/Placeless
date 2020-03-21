@@ -53,9 +53,7 @@ namespace Placeless.MetadataStore.Sql.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd();
 
-                    b.Property<byte[]>("Contents");
-
-                    b.Property<Guid>("FileGuid");
+                    b.Property<string>("Extension");
 
                     b.Property<string>("Hash");
 
