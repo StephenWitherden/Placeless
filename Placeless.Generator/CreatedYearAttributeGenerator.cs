@@ -9,7 +9,14 @@ namespace Placeless.Generator
 
         public override string[] DeriveFromMetadata(string metadata)
         {
-            var dateObj = JObject.Parse(metadata)["File_File_Modified_Date"];
+            var dateObj = JObject.Parse(metadata)["Exif_SubIFD_Date_Time_Original"];
+            if (dateObj != null)
+            {
+                var date = dateObj.Value<string>();
+                string year = date.Substring(0, 4);
+                return new string[] { year };
+            }
+            dateObj = JObject.Parse(metadata)["File_File_Modified_Date"];
             if (dateObj != null)
             {
                 var date = dateObj.Value<string>();
