@@ -113,5 +113,84 @@ namespace Placeless.App.Windows.Properties {
                 this["CallUpgrade"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("55fb3d97ae6d7d26717b6523ec8c1524")]
+        public string Telegram_AppHash {
+            get {
+                return ((string)(this["Telegram_AppHash"]));
+            }
+            set {
+                this["Telegram_AppHash"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("691756")]
+        public string Telegram_AppId {
+            get {
+                return ((string)(this["Telegram_AppId"]));
+            }
+            set {
+                this["Telegram_AppId"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("149.154.167.50")]
+        public string Telegram_ServerAddress {
+            get {
+                return ((string)(this["Telegram_ServerAddress"]));
+            }
+            set {
+                this["Telegram_ServerAddress"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute(@"-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAwVACPi9w23mF3tBkdZz+zwrzKOaaQdr01vAbU4E1pvkfj4sqDsm6
+lyDONS789sVoD/xCS9Y0hkkC3gtL1tSfTlgCMOOul9lcixlEKzwKENj1Yz/s7daS
+an9tqw3bfUV/nqgbhGX81v/+7RFAEd+RwFnK7a+XYl9sluzHRyVVaTTveB2GazTw
+Efzk2DWgkBluml8OREmvfraX3bkHZJTKX4EQSjBbbdJ2ZXIsRrYOXfaA+xayEGB+
+8hdlLmAjbCVfaigxX0CDqWeR1yFL9kwd9P0NsZRPsmoqVwMbMu7mStFai6aIhc3n
+Slv8kg9qv1m6XHVQY3PnEw+QQtqSIXklHwIDAQAB
+-----END RSA PUBLIC KEY-----")]
+        public string Telegram_PublicKey {
+            get {
+                return ((string)(this["Telegram_PublicKey"]));
+            }
+            set {
+                this["Telegram_PublicKey"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("443")]
+        public string Telegram_Port {
+            get {
+                return ((string)(this["Telegram_Port"]));
+            }
+            set {
+                this["Telegram_Port"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("+61404199123")]
+        public string Telegram_Phone {
+            get {
+                return ((string)(this["Telegram_Phone"]));
+            }
+            set {
+                this["Telegram_Phone"] = value;
+            }
+        }
     }
 }

@@ -30,5 +30,30 @@
     <Setting Name="CallUpgrade" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="Telegram_AppHash" Type="System.String" Scope="User">
+      <Value Profile="(Default)">55fb3d97ae6d7d26717b6523ec8c1524</Value>
+    </Setting>
+    <Setting Name="Telegram_AppId" Type="System.String" Scope="User">
+      <Value Profile="(Default)">691756</Value>
+    </Setting>
+    <Setting Name="Telegram_ServerAddress" Type="System.String" Scope="User">
+      <Value Profile="(Default)">149.154.167.50</Value>
+    </Setting>
+    <Setting Name="Telegram_PublicKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAwVACPi9w23mF3tBkdZz+zwrzKOaaQdr01vAbU4E1pvkfj4sqDsm6
+lyDONS789sVoD/xCS9Y0hkkC3gtL1tSfTlgCMOOul9lcixlEKzwKENj1Yz/s7daS
+an9tqw3bfUV/nqgbhGX81v/+7RFAEd+RwFnK7a+XYl9sluzHRyVVaTTveB2GazTw
+Efzk2DWgkBluml8OREmvfraX3bkHZJTKX4EQSjBbbdJ2ZXIsRrYOXfaA+xayEGB+
+8hdlLmAjbCVfaigxX0CDqWeR1yFL9kwd9P0NsZRPsmoqVwMbMu7mStFai6aIhc3n
+Slv8kg9qv1m6XHVQY3PnEw+QQtqSIXklHwIDAQAB
+-----END RSA PUBLIC KEY-----</Value>
+    </Setting>
+    <Setting Name="Telegram_Port" Type="System.String" Scope="User">
+      <Value Profile="(Default)">443</Value>
+    </Setting>
+    <Setting Name="Telegram_Phone" Type="System.String" Scope="User">
+      <Value Profile="(Default)">+61404199123</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

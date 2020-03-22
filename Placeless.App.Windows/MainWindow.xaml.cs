@@ -26,6 +26,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Generator = Placeless.Generator.Generator;
+using Placeless.Source.Telegram;
 
 namespace Placeless.App.Windows
 {
@@ -51,10 +52,12 @@ namespace Placeless.App.Windows
             _servicecollection.AddTransient<IMetadataStore, SqlMetadataStore>();
             _servicecollection.AddTransient<FlickrSource>();
             _servicecollection.AddTransient<WindowsSource>();
+            _servicecollection.AddTransient<TelegramSource>();
             _servicecollection.AddTransient<Placeless.Generator.Generator>();
 
             _servicecollection.AddTransient<Collector<FlickrSource>>();
             _servicecollection.AddTransient<Collector<WindowsSource>>();
+            _servicecollection.AddTransient<Collector<TelegramSource>>();
 
             _serviceProvider = _servicecollection.BuildServiceProvider();
 
@@ -297,6 +300,21 @@ namespace Placeless.App.Windows
             var db = _serviceProvider.GetService<IMetadataStore>();
             var page = new PhotoViewer(db);
             mainFrame.Navigate(page);
+        }
+
+        private void btnCollectTelegram_Click(object sender, RoutedEventArgs e)
+        {
+            var collector = _serviceProvider.GetService<Collector<TelegramSource>>();
+
+            var watchTask = watch(collector);
+
+            watchTask
+                .ContinueWith((t) =>
+                {
+                    refreshMetadata();
+                });
+
+            watchTask.Start();
         }
     }
 }

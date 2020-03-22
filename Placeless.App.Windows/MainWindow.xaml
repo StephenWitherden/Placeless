@@ -38,6 +38,7 @@
                 <RibbonGroup x:Name="rbnCollect" Header="Collect Files from">
                     <RibbonButton x:Name="btnCollectFlickr" Label="Flickr" LargeImageSource="Images/Download_32x.png" Click="btnCollectFlickr_Click"/>
                     <RibbonButton x:Name="btnCollectWindows" Label="Folders" LargeImageSource="Images/Download_32x.png" Click="btnCollectFolders_Click"/>
+                    <RibbonButton x:Name="btnCollectTelegram" Label="Telegram" LargeImageSource="Images/Download_32x.png" Click="btnCollectTelegram_Click"/>
                 </RibbonGroup>
                 <RibbonGroup x:Name="rbnGrRefresh" Header="Files &amp; Metadata">
                     <RibbonButton x:Name="btnGenerateThumbnails" Label="Generate Thumbnails" LargeImageSource="Images/Image_32x.png" Click="btnGenerateThumbnails_Click" />
